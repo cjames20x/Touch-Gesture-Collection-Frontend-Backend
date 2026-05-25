@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>User Info</title>
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="card">
+
+        <div class="app-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 1 1 0 10A5 5 0 0 1 12 2zm0 12c5.33 0 8 2.67 8 4v2H4v-2c0-1.33 2.67-4 8-4z"/></svg>
+        </div>
+
+        <div>
+          <h1 class="page-title">Saved User Info</h1>
+        </div>
+
+        <div id="info" style="display:flex;flex-direction:column;gap:10px">Loading...</div>
+
+        <a class="link" href="selection.html">← Back to Selection</a>
+
+      </div>
+    </div>
+
+    <script>
+      try {
+        const raw = localStorage.getItem('user');
+        const el = document.getElementById('info');
+        if (!raw) {
+          el.innerHTML = '<p style="color:var(--muted);font-size:0.9rem;text-align:center">No user info saved.</p>';
+        } else {
+          const user = JSON.parse(raw);
+          el.innerHTML = `
+            <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px">
+              <div class="form-group">
+                <span class="form-label">Name</span>
+                <span style="font-size:1rem;font-weight:700;color:var(--text)">${user.name || '—'}</span>
+              </div>
+              <div style="height:1px;background:var(--border)"></div>
+              <div class="form-group">
+                <span class="form-label">Age</span>
+                <span style="font-size:1rem;font-weight:700;color:var(--text)">${user.age || '—'}</span>
+              </div>
+              ${user.gender ? `<div style="height:1px;background:var(--border)"></div>
+              <div class="form-group">
+                <span class="form-label">Gender</span>
+                <span style="font-size:1rem;font-weight:700;color:var(--text)">${user.gender}</span>
+              </div>` : ''}
+              ${user.participantId ? `<div style="height:1px;background:var(--border)"></div>
+              <div class="form-group">
+                <span class="form-label">Participant ID</span>
+                <span style="font-size:1rem;font-weight:700;color:var(--text)">${user.participantId}</span>
+              </div>` : ''}
+            </div>
+          `;
+        }
+      } catch(err) {
+        document.getElementById('info').textContent = 'Error reading user info.';
+      }
+    </script>
+  </body>
+</html>

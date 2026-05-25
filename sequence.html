@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Select Sequence</title>
+    <link rel="stylesheet" href="index.css" />
+    <script type="module" src="dist/sequence.js"></script>
+  </head>
+  <body>
+    <div class="page">
+      <div class="card">
+
+        <div class="nav-bar">
+          <a class="btn-back" href="selection.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            Back
+          </a>
+        </div>
+
+        <div class="app-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 1 1 0 10A5 5 0 0 1 12 2zm0 12c5.33 0 8 2.67 8 4v2H4v-2c0-1.33 2.67-4 8-4z"/></svg>
+        </div>
+
+        <div>
+          <h1 class="page-title">Instructions</h1>
+          <p class="page-subtitle" style="margin-top:4px">Choose your instruction sequence to begin your session.</p>
+        </div>
+
+        <div class="info-box">
+          Choose the sequence that matches your assigned session protocol.
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px" id="seq-list">
+          <label class="seq-option selected" id="seq-opt-0">
+            <input type="radio" name="seq" value="tap,swipe,scroll" checked />
+            <span style="font-size:1.1rem">①</span>
+            <div>
+              <div style="font-size:0.92rem;font-weight:700">Tap → Swipe → Scroll</div>
+              <div style="font-size:0.78rem;color:var(--muted);margin-top:2px">Set A</div>
+            </div>
+          </label>
+          <label class="seq-option" id="seq-opt-1">
+            <input type="radio" name="seq" value="swipe,zoom,scroll" />
+            <span style="font-size:1.1rem">②</span>
+            <div>
+              <div style="font-size:0.92rem;font-weight:700">Swipe → Zoom → Scroll</div>
+              <div style="font-size:0.78rem;color:var(--muted);margin-top:2px">Set B</div>
+            </div>
+          </label>
+          <label class="seq-option" id="seq-opt-2">
+            <input type="radio" name="seq" value="pinch,swipe,tap" />
+            <span style="font-size:1.1rem">③</span>
+            <div>
+              <div style="font-size:0.92rem;font-weight:700">Pinch → Swipe → Tap</div>
+              <div style="font-size:0.78rem;color:var(--muted);margin-top:2px">Set C</div>
+            </div>
+          </label>
+          <label class="seq-option" id="seq-opt-3">
+            <input type="radio" name="seq" value="scroll,swipe,scroll" />
+            <span style="font-size:1.1rem">④</span>
+            <div>
+              <div style="font-size:0.92rem;font-weight:700">Scroll → Swipe → Scroll</div>
+              <div style="font-size:0.78rem;color:var(--muted);margin-top:2px">Set D</div>
+            </div>
+          </label>
+        </div>
+
+        <div class="divider"></div>
+
+        <button id="save-seq" class="btn-primary">Continue to Training →</button>
+
+      </div>
+    </div>
+
+    <script>
+      const opts = document.querySelectorAll('.seq-option');
+      opts.forEach((opt, i) => {
+        opt.addEventListener('click', () => {
+          opts.forEach(o => o.classList.remove('selected'));
+          opt.classList.add('selected');
+          opt.querySelector('input').checked = true;
+        });
+      });
+    </script>
+  </body>
+</html>

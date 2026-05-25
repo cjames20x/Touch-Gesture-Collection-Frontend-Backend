@@ -1,0 +1,78 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Training</title>
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="card">
+
+        <div class="nav-bar" style="justify-content:space-between">
+          <button id="back-button" class="btn-back" style="background:none;font-family:inherit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                 stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px">
+              <path d="M15 18l-6-6 6-6"/>
+            </svg>
+            Back
+          </button>
+          <div id="user-info" style="font-size:0.78rem">Loading...</div>
+        </div>
+
+        <div class="app-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2a5 5 0 1 1 0 10A5 5 0 0 1 12 2zm0 12c5.33 0 8 2.67 8 4v2H4v-2c0-1.33 2.67-4 8-4z"/>
+          </svg>
+        </div>
+
+        <div>
+          <h1 class="page-title">Training</h1>
+          <p class="page-subtitle" style="margin-top:4px">
+            Follow the instructions and perform the gestures on the surface below.
+          </p>
+        </div>
+
+        <div style="display:flex;gap:8px;align-items:center">
+          <div id="training-status" style="flex:1">Idle</div>
+          <div id="current-instruction" style="flex:2">Next: Tap</div>
+        </div>
+
+        <div style="display:flex;gap:10px">
+          <button id="start-training" class="btn-primary" style="flex:1">▶ Start Training (10 reps)</button>
+          <button id="stop-training"  class="btn-secondary" style="flex:1;display:none">■ Stop</button>
+        </div>
+
+        <div id="surface" style="
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          min-height:200px;
+          border:2px dashed var(--muted);
+          border-radius:12px;
+          color:var(--muted);
+          font-size:0.85rem;
+          font-weight:600;
+          letter-spacing:0.02em;
+          user-select:none;
+          -webkit-user-select:none;
+          touch-action:none;
+          cursor:crosshair;
+        ">
+          👆 Gesture Area
+        </div>
+
+        <div id="output" style="display:none"></div>
+
+        <a id="continue-btn" class="btn-primary" href="selection.html"
+           style="display:none;text-align:center;text-decoration:none">
+          ← Back to Session
+        </a>
+
+      </div>
+    </div>
+
+    <script type="module" src="dist/training.js"></script>
+  </body>
+</html>

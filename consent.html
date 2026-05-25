@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Informed Consent</title>
+    <link rel="stylesheet" href="index.css" />
+    <script type="module" src="dist/register.js"></script>
+  </head>
+  <body>
+    <div class="page">
+      <div class="card">
+
+        <div class="nav-bar">
+          <a class="btn-back" href="register.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            Back
+          </a>
+        </div>
+
+        <div class="app-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 1 1 0 10A5 5 0 0 1 12 2zm0 12c5.33 0 8 2.67 8 4v2H4v-2c0-1.33 2.67-4 8-4z"/></svg>
+        </div>
+
+        <div>
+          <h1 class="page-title">Informed Consent</h1>
+          <p class="page-subtitle" style="margin-top:4px">Each user must undergo and answer the informed consent below as it is mandatory before proceeding with the study.</p>
+        </div>
+
+        <div class="consent-box" id="consent-scroll">
+          <h4>INFORMED CONSENT FORM</h4>
+          <p><strong>Purpose &amp; Procedures</strong><br/>
+          This study aims to collect multimodal touch attributes including taps, swipes, scrolls, zooms, and pinches on mobile devices. You will be asked to perform a series of touch gestures as instructed on the screen.</p>
+
+          <h4>Privacy &amp; Identification</h4>
+          <p>The app will not track attributes that identify you personally — no name, email, device ID, or exact location. Data is collected solely for biometric gesture research. All recordings are stored securely and will not be shared with third parties.</p>
+
+          <h4>Data Collection</h4>
+          <p>The app will record the touch attribute of each gesture you perform. You may be asked to repeat gestures across multiple sessions. Session data includes timestamps and touch coordinates only.</p>
+
+          <h4>Voluntary Participation</h4>
+          <p>This study is completely voluntary. You may withdraw at any time without consequence. Your participation or non-participation will not affect your standing or academic record at this institution.</p>
+
+          <h4>Risks &amp; Benefits</h4>
+          <p>There are no known risks beyond normal smartphone use. Your data will contribute to advancing touch-based biometric research.</p>
+        </div>
+
+        <div class="step-dots">
+          <div class="step-dot done"></div>
+          <div class="step-dot active"></div>
+          <div class="step-dot"></div>
+        </div>
+
+        <label class="checkbox-row">
+          <input type="checkbox" id="consent-check" />
+          I understand and consent to participate in this study.
+        </label>
+
+        <button class="btn-primary" id="submit-consent" disabled onclick="submitConsent()">Submit</button>
+
+      </div>
+    </div>
+
+    <script>
+      const check = document.getElementById('consent-check');
+      const btn = document.getElementById('submit-consent');
+      check.addEventListener('change', () => { btn.disabled = !check.checked; });
+      function submitConsent() {
+        if (check.checked) window.location.href = 'selection.html';
+      }
+    </script>
+  </body>
+</html>

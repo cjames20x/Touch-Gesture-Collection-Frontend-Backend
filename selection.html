@@ -1,0 +1,94 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Selection</title>
+    <link rel="stylesheet" href="index.css" />
+    <script type="module" src="dist/selection.js"></script>
+  </head>
+  <body>
+    <div class="page">
+      <div class="card">
+
+        <div class="nav-bar">
+          <a class="btn-back" href="index.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 18l-6-6 6-6"/>
+            </svg>
+            Back
+          </a>
+        </div>
+
+        <div class="app-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 1 1 0 10A5 5 0 0 1 12 2zm0 12c5.33 0 8 2.67 8 4v2H4v-2c0-1.33 2.67-4 8-4z"/></svg>
+        </div>
+
+        <div>
+          <h1 class="page-title">Session</h1>
+          <p class="page-subtitle" style="margin-top:4px">Select your session number. This corresponds to the day the session is being conducted.</p>
+        </div>
+
+        <div id="user-info">Loading...</div>
+
+        <div class="session-grid" id="session-grid">
+          <label class="session-card" id="sess1">
+            <input type="radio" name="session" value="1" />
+            <div class="session-num">1</div>
+            <span>SESSION #1</span>
+          </label>
+          <label class="session-card" id="sess2">
+            <input type="radio" name="session" value="2" />
+            <div class="session-num">2</div>
+            <span>SESSION #2</span>
+          </label>
+          <label class="session-card" id="sess3">
+            <input type="radio" name="session" value="3" />
+            <div class="session-num">3</div>
+            <span>SESSION #3</span>
+          </label>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="row" style="display:flex;gap:10px">
+          <button id="to-training" class="btn-secondary" style="flex:1">Training</button>
+          <button id="to-eval" class="btn-primary" style="flex:1">Next →</button>
+        </div>
+
+        <a class="link" href="user.html" target="_blank">View saved user info</a>
+
+      </div>
+    </div>
+
+    <script>
+      function selectSession(sessionNum) {
+        document.querySelector(`input[value="${sessionNum}"]`).checked = true;
+        document.getElementById(`sess${sessionNum}`).classList.add('selected');
+      }
+
+      document.querySelectorAll('.session-card').forEach(card => {
+        card.addEventListener('click', function() {
+          document.querySelectorAll('.session-card').forEach(c => c.classList.remove('selected'));
+          this.classList.add('selected');
+          this.querySelector('input').checked = true;
+        });
+      });
+
+      document.getElementById('to-eval').addEventListener('click', function() {
+        const selected = document.querySelector('input[name="session"]:checked');
+        if (selected) {
+          window.location.href = `eval.html?session=${selected.value}`;
+        }
+      });
+
+      document.getElementById('to-training').addEventListener('click', function() {
+        const selected = document.querySelector('input[name="session"]:checked');
+        if (selected) {
+          window.location.href = `training.html?session=${selected.value}`;
+        }
+      });
+    </script>
+  </body>
+</html>
