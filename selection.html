@@ -27,7 +27,7 @@
 
         <div>
           <h1 class="page-title">Session</h1>
-          <p class="page-subtitle" style="margin-top:4px">Select your session number. This corresponds to the day the session is being conducted.</p>
+          <p class="page-subtitle" style="margin-top:4px">Select your session. First complete Training (10 reps), then Authentication (1 rep).</p>
         </div>
 
         <div id="user-info">Loading...</div>
@@ -36,24 +36,24 @@
           <label class="session-card" id="sess1">
             <input type="radio" name="session" value="1" />
             <div class="session-num">1</div>
-            <span>SESSION #1</span>
-          </label>
-          <label class="session-card" id="sess2">
-            <input type="radio" name="session" value="2" />
-            <div class="session-num">2</div>
-            <span>SESSION #2</span>
+            <div class="session-label">
+              <span class="session-title">TRAINING</span>
+              <span class="session-reps" style="font-size: 0.7rem; color: #94a3b8; margin-top: 2px;">10 reps</span>
+            </div>
           </label>
           <label class="session-card" id="sess3">
             <input type="radio" name="session" value="3" />
-            <div class="session-num">3</div>
-            <span>SESSION #3</span>
+            <div class="session-num">2</div>
+            <div class="session-label">
+              <span class="session-title">AUTHENTICATION</span>
+              <span class="session-reps" style="font-size: 0.7rem; color: #94a3b8; margin-top: 2px;">1 rep</span>
+            </div>
           </label>
         </div>
 
         <div class="divider"></div>
 
         <div class="row" style="display:flex;gap:10px">
-          <button id="to-training" class="btn-secondary" style="flex:1">Training</button>
           <button id="to-eval" class="btn-primary" style="flex:1">Next →</button>
         </div>
 
@@ -63,11 +63,6 @@
     </div>
 
     <script>
-      function selectSession(sessionNum) {
-        document.querySelector(`input[value="${sessionNum}"]`).checked = true;
-        document.getElementById(`sess${sessionNum}`).classList.add('selected');
-      }
-
       document.querySelectorAll('.session-card').forEach(card => {
         card.addEventListener('click', function() {
           document.querySelectorAll('.session-card').forEach(c => c.classList.remove('selected'));
@@ -79,14 +74,9 @@
       document.getElementById('to-eval').addEventListener('click', function() {
         const selected = document.querySelector('input[name="session"]:checked');
         if (selected) {
-          window.location.href = `eval.html?session=${selected.value}`;
-        }
-      });
-
-      document.getElementById('to-training').addEventListener('click', function() {
-        const selected = document.querySelector('input[name="session"]:checked');
-        if (selected) {
-          window.location.href = `training.html?session=${selected.value}`;
+          const sessionMap = { '1': 'training', '2': 'evaluation', '3': 'authentication' };
+          const mode = sessionMap[selected.value];
+          window.location.href = `eval.html?mode=${mode}`;
         }
       });
     </script>
