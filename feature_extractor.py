@@ -25,6 +25,31 @@ def _split_fingers(events: List[TouchEvent]):
     return f0, f1
 
 
+def _normalize_to_bbox(events: List[TouchEvent]) -> List[TouchEvent]:
+    if not events:
+        return []
+
+    xs = np.array([e.x for e in events], dtype=np.float64)
+    ys = np.array([e.y for e in events], dtype=np.float64)
+
+    min_x = float(xs.min())
+    min_y = float(ys.min())
+    width = float(xs.max() - min_x)
+    height = float(ys.max() - min_y)
+    scale = max(width, height, 1e-6)
+
+    return [
+        TouchEvent(
+            timestamp=e.timestamp,
+            x=(e.x - min_x) / scale,
+            y=(e.y - min_y) / scale,
+            pressure=e.pressure,
+            finger_id=e.finger_id,
+        )
+        for e in events
+    ]
+
+
 def _core_features(events: List[TouchEvent]) -> np.ndarray:
     if len(events) < 2:
         return np.zeros(8)
@@ -92,7 +117,7 @@ class FeatureExtractor:
 
     def gesture_to_vector(self, gesture: Gesture) -> np.ndarray:
 
-        events = gesture.events
+        events = _normalize_to_bbox(gesture.events)
 
         if gesture.is_multitouch:
             f0, f1 = _split_fingers(events)
