@@ -1,28 +1,35 @@
-const form = document.getElementById('register-form');
-
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function selectGender(g) {
     document.getElementById('gender-male')?.classList.toggle('selected', g === 'male');
     document.getElementById('gender-female')?.classList.toggle('selected', g === 'female');
-    const radio = document.getElementById(g === 'male' ? 'radio-male' : 'radio-female');
-    if (radio) radio.checked = true;
+    const radio = document.querySelector(`input[name="gender"][value="${g}"]`);
+    if (radio)
+        radio.checked = true;
 }
-
-document.getElementById('gender-male')?.addEventListener('click', () => {
-    selectGender('male');
-});
-document.getElementById('gender-female')?.addEventListener('click', () => {
-    selectGender('female');
-});
-
-if (form) {
+// ── Init (deferred so all DOM elements exist before we query them) ─────────────
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('register-form');
+    const maleBtn = document.getElementById('gender-male');
+    const femaleBtn = document.getElementById('gender-female');
+    // FIX: log clearly if the form element is missing so HTML ID mismatches surface immediately
+    if (!form) {
+        console.error('[register] #register-form not found — check your HTML id attribute.');
+        return;
+    }
+    maleBtn?.addEventListener('click', () => selectGender('male'));
+    femaleBtn?.addEventListener('click', () => selectGender('female'));
     form.addEventListener('submit', (ev) => {
         ev.preventDefault();
-
-        const name          = document.getElementById('name').value.trim();
-        const age           = parseInt(document.getElementById('age').value, 10);
-        const gender        = document.querySelector('input[name="gender"]:checked')?.value ?? '';
-        const participantId = document.getElementById('participant-id').value.trim();
-
+        const nameEl = document.getElementById('name');
+        const ageEl = document.getElementById('age');
+        const pidEl = document.getElementById('participant-id');
+        const genderEl = document.querySelector('input[name="gender"]:checked');
+        const name = nameEl?.value.trim() ?? '';
+        const age = parseInt(ageEl?.value ?? '', 10);
+        const gender = genderEl?.value ?? '';
+        // participantId is optional — derive from name when left blank
+        const rawPid = pidEl?.value.trim() ?? '';
+        const participantId = rawPid || name.replace(/\s+/g, '_').toLowerCase();
         if (!name || isNaN(age)) {
             alert('Please enter your name and age.');
             return;
@@ -31,11 +38,9 @@ if (form) {
             alert('Please select a gender.');
             return;
         }
-
         localStorage.setItem('user', JSON.stringify({ name, age, gender, participantId }));
-        window.location.href = 'consent.html';
+        window.location.href = './consent.html';
     });
-}
-
+});
 export {};
 //# sourceMappingURL=register.js.map

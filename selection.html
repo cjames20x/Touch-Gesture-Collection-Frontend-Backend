@@ -43,7 +43,7 @@
           </label>
           <label class="session-card" id="sess3">
             <input type="radio" name="session" value="3" />
-            <div class="session-num">2</div>
+            <div class="session-num">3</div>
             <div class="session-label">
               <span class="session-title">AUTHENTICATION</span>
               <span class="session-reps" style="font-size: 0.7rem; color: #94a3b8; margin-top: 2px;">1 rep</span>
@@ -54,31 +54,12 @@
         <div class="divider"></div>
 
         <div class="row" style="display:flex;gap:10px">
-          <button id="to-eval" class="btn-primary" style="flex:1">Next →</button>
+          <button id="to-eval" class="btn-primary" style="flex:1">Continue →</button>
         </div>
 
         <a class="link" href="user.html" target="_blank">View saved user info</a>
 
       </div>
     </div>
-
-    <script>
-      document.querySelectorAll('.session-card').forEach(card => {
-        card.addEventListener('click', function() {
-          document.querySelectorAll('.session-card').forEach(c => c.classList.remove('selected'));
-          this.classList.add('selected');
-          this.querySelector('input').checked = true;
-        });
-      });
-
-      document.getElementById('to-eval').addEventListener('click', function() {
-        const selected = document.querySelector('input[name="session"]:checked');
-        if (selected) {
-          const sessionMap = { '1': 'training', '2': 'evaluation', '3': 'authentication' };
-          const mode = sessionMap[selected.value];
-          window.location.href = `eval.html?mode=${mode}`;
-        }
-      });
-    </script>
   </body>
 </html>

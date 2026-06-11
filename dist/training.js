@@ -1,436 +1,324 @@
-import { normalizeToElement, classifyGesture } from './gesture.js';
-
-const surface             = document.getElementById('surface');
-const output              = document.getElementById('output');
-const startBtn            = document.getElementById('start-training');
-const stopBtn             = document.getElementById('stop-training');
-const currentInstruction  = document.getElementById('current-instruction');
-const trainingStatus      = document.getElementById('training-status');
-const userInfo            = document.getElementById('user-info');
-const backBtn             = document.getElementById('back-button');
-
-let gesture              = null;
-let mouseDown            = false;          // tracks mouse drag state
-let mode                 = 'idle';
-let trainingInstructionSet = [];
-let trainingStepIndex    = 0;
-let trainingRepsTarget   = 10;
-let trainingCurrentRep   = 0;
-let trainingRecords      = [];
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
-
-function getCurrentInstruction() {
-  const v = trainingInstructionSet[trainingStepIndex];
-  if (typeof v === 'string' && v.length > 0) return v;
-  return trainingInstructionSet[0] ?? 'tap';
-}
-
-function updateInstructionDisplay() {
-  if (!currentInstruction) return;
-  if (mode === 'training') {
-    currentInstruction.textContent =
-      `Training: ${capitalize(getCurrentInstruction())} (rep ${trainingCurrentRep + 1}/${trainingRepsTarget})`;
-    if (trainingStatus)
-      trainingStatus.textContent = `Step ${trainingStepIndex + 1} / ${trainingInstructionSet.length}`;
-  } else {
-    currentInstruction.textContent =
-      `Next: ${capitalize(trainingInstructionSet[trainingStepIndex] ?? trainingInstructionSet[0] ?? 'tap')}`;
-  }
-}
-
-function readTrainingSelection() {
-  try {
-    const raw = localStorage.getItem('selectedSequence');
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
-  } catch (_) {}
-  const selected = document.querySelector('input[name="training-instructions"]:checked');
-  if (!selected) return ['tap', 'swipe', 'scroll'];
-  return selected.value.split(',').map(s => s.trim());
-}
-
-// ---------------------------------------------------------------------------
-// Normalise a client-space point relative to the surface element
-// ---------------------------------------------------------------------------
-function normalizePoint(clientX, clientY) {
-  return normalizeToElement(clientX, clientY, surface);
-}
-
-// ---------------------------------------------------------------------------
-// Core gesture lifecycle  (shared by touch & mouse)
-// ---------------------------------------------------------------------------
-function gestureStart(clientX, clientY) {
-  if (mode !== 'training') return;           // ✅ FIX: guard idle/stopped mode
-  gesture = { type: getCurrentInstruction(), points: [] };
-  addPoint(clientX, clientY, 0);
-}
-
-function gestureMove(clientX, clientY) {
-  if (mode !== 'training' || !gesture) return;
-  addPoint(clientX, clientY, 0);
-}
-
-function gestureEnd() {
-  if (mode !== 'training' || !gesture) return;  // ✅ FIX: guard + null check
-
-  // Classify what was drawn (optional — enriches the saved record)
-  const detectedType = classifyGesture(gesture.points);
-
-  const data = {
-    timestamp:      new Date().toISOString(),
-    type:           gesture.type,          // instructed gesture
-    detected:       detectedType,          // what the path looks like
-    touch_position: gesture.points,
-  };
-
-  trainingRecords.push(data);
-
-  // Advance step / rep counters
-  trainingStepIndex++;
-  if (trainingStepIndex >= trainingInstructionSet.length) {
-    trainingStepIndex = 0;
-    trainingCurrentRep++;
-  }
-
-  if (trainingCurrentRep >= trainingRepsTarget) {
-    finishTraining();
-  } else {
-    log(data);
-    gesture = null;
-    updateInstructionDisplay();
-  }
-}
-
-function addPoint(clientX, clientY, pressure) {
-  if (!gesture) return;
-  const p = normalizePoint(clientX, clientY);
-  gesture.points.push({ time: performance.now(), x: p.x, y: p.y, pressure });
-}
-
-// ---------------------------------------------------------------------------
-// Training complete
-// ---------------------------------------------------------------------------
-function finishTraining() {
-  mode = 'idle';
-  gesture = null;
-
-  if (trainingStatus)     trainingStatus.textContent    = 'Training complete ✓';
-  if (currentInstruction) currentInstruction.textContent = 'All gestures recorded!';
-  if (stopBtn)  stopBtn.style.display  = 'none';
-  if (startBtn) startBtn.style.display = '';
-
-  const continueBtn = document.getElementById('continue-btn');
-  if (continueBtn) continueBtn.style.display = '';
-
-  renderOutput(trainingRecords, trainingInstructionSet, trainingRepsTarget);
-
-  saveToLocalStorage(trainingRecords);
-  sendToBackend({
-    user:     getUser(),
-    sequence: trainingInstructionSet,
-    records:  trainingRecords,
-    meta:     { completedAt: new Date().toISOString(), reps: trainingCurrentRep },
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Render results table into #output after training completes
-// ---------------------------------------------------------------------------
-function renderOutput(records, sequence, reps) {
-  if (!output) return;
-  output.style.display = '';
-
-  // Gesture emoji map
-  const EMOJI = {
-    tap:          '👆',
-    swipe:        '👉',
-    'swipe-left':  '👈',
-    'swipe-right': '👉',
-    'swipe-up':    '👆',
-    'swipe-down':  '👇',
-    scroll:       '🖱️',
-    unknown:      '❓',
-  };
-  const emoji = (type) => EMOJI[type] ?? EMOJI[type?.split('-')[0]] ?? '✋';
-
-  // Count matches (instructed vs detected)
-  const matched = records.filter(r => r.detected === r.type || r.type.startsWith(r.detected)).length;
-  const accuracy = records.length > 0 ? Math.round((matched / records.length) * 100) : 0;
-
-  // Summary stats per gesture type
-  const statsByType = {};
-  for (const r of records) {
-    if (!statsByType[r.type]) statsByType[r.type] = { total: 0, matched: 0, points: [] };
-    statsByType[r.type].total++;
-    if (r.detected === r.type || r.type.startsWith(r.detected)) statsByType[r.type].matched++;
-    statsByType[r.type].points.push(r.touch_position.length);
-  }
-
-  // Build rows: one per gesture record
-  const rows = records.map((r, i) => {
-    const match = r.detected === r.type || r.type.startsWith(r.detected);
-    const pts   = r.touch_position.length;
-    const rep   = Math.floor(i / sequence.length) + 1;
-    const step  = (i % sequence.length) + 1;
-    return `
-      <tr>
-        <td style="text-align:center;color:var(--muted)">${rep}</td>
-        <td style="text-align:center;color:var(--muted)">${step}</td>
-        <td>${emoji(r.type)} ${capitalize(r.type)}</td>
-        <td>${emoji(r.detected)} ${capitalize(r.detected)}</td>
-        <td style="text-align:center">${pts}</td>
-        <td style="text-align:center;font-size:1rem">${match ? '✅' : '❌'}</td>
-      </tr>`;
-  }).join('');
-
-  // Summary cards per gesture type
-  const summaryCards = Object.entries(statsByType).map(([type, s]) => {
-    const pct     = Math.round((s.matched / s.total) * 100);
-    const avgPts  = Math.round(s.points.reduce((a, b) => a + b, 0) / s.points.length);
-    const color   = pct >= 80 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444';
-    return `
-      <div style="
-        flex:1;min-width:120px;
-        border:1px solid var(--muted);
-        border-radius:10px;
-        padding:10px 14px;
-        text-align:center;
-      ">
-        <div style="font-size:1.5rem">${emoji(type)}</div>
-        <div style="font-weight:700;font-size:0.9rem;margin:4px 0">${capitalize(type)}</div>
-        <div style="font-size:1.4rem;font-weight:800;color:${color}">${pct}%</div>
-        <div style="font-size:0.72rem;color:var(--muted)">${s.matched}/${s.total} correct</div>
-        <div style="font-size:0.72rem;color:var(--muted)">${avgPts} pts avg</div>
-      </div>`;
-  }).join('');
-
-  output.innerHTML = `
-    <div style="margin-top:16px;display:flex;flex-direction:column;gap:14px">
-
-      <!-- Header -->
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <h2 style="margin:0;font-size:1rem;font-weight:700">Results</h2>
-        <span style="font-size:0.78rem;color:var(--muted)">${reps} reps · ${records.length} gestures</span>
-      </div>
-
-      <!-- Overall accuracy banner -->
-      <div style="
-        border-radius:10px;
-        padding:12px 16px;
-        background:${accuracy >= 80 ? '#dcfce7' : accuracy >= 50 ? '#fef9c3' : '#fee2e2'};
-        color:${accuracy >= 80 ? '#15803d' : accuracy >= 50 ? '#92400e' : '#991b1b'};
-        font-weight:700;
-        font-size:0.95rem;
-        display:flex;
-        align-items:center;
-        gap:10px;
-      ">
-        <span style="font-size:1.5rem">${accuracy >= 80 ? '🎉' : accuracy >= 50 ? '⚠️' : '🔁'}</span>
-        <div>
-          <div>Overall accuracy: ${accuracy}%</div>
-          <div style="font-size:0.75rem;font-weight:400;opacity:0.85">
-            ${accuracy >= 80 ? 'Great job! All gestures recognised well.'
-              : accuracy >= 50 ? 'Some gestures need more practice.'
-              : 'Try again — focus on making clearer gestures.'}
-          </div>
-        </div>
-      </div>
-
-      <!-- Per-type summary cards -->
-      <div style="display:flex;flex-wrap:wrap;gap:10px">
-        ${summaryCards}
-      </div>
-
-      <!-- Full gesture log table -->
-      <details open>
-        <summary style="
-          cursor:pointer;
-          font-size:0.85rem;
-          font-weight:600;
-          padding:6px 0;
-          user-select:none;
-        ">Full gesture log</summary>
-        <div style="overflow-x:auto;margin-top:8px">
-          <table style="
-            width:100%;
-            border-collapse:collapse;
-            font-size:0.78rem;
-          ">
-            <thead>
-              <tr style="border-bottom:2px solid var(--muted)">
-                <th style="padding:6px 8px;text-align:center;color:var(--muted);font-weight:600">Rep</th>
-                <th style="padding:6px 8px;text-align:center;color:var(--muted);font-weight:600">Step</th>
-                <th style="padding:6px 8px;text-align:left;color:var(--muted);font-weight:600">Instructed</th>
-                <th style="padding:6px 8px;text-align:left;color:var(--muted);font-weight:600">Detected</th>
-                <th style="padding:6px 8px;text-align:center;color:var(--muted);font-weight:600">Points</th>
-                <th style="padding:6px 8px;text-align:center;color:var(--muted);font-weight:600">Match</th>
-              </tr>
-            </thead>
-            <tbody style="font-variant-numeric:tabular-nums">
-              ${rows}
-            </tbody>
-          </table>
-        </div>
-      </details>
-
-    </div>`;
-}
-
-// ---------------------------------------------------------------------------
-// Storage / backend helpers
-// ---------------------------------------------------------------------------
+import { submitGestures } from './api.js';
 function getUser() {
-  try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch (_) { return null; }
+    try {
+        return JSON.parse(localStorage.getItem('user') ?? '{}');
+    }
+    catch {
+        return {};
+    }
 }
-
-function saveToLocalStorage(records) {
-  try {
-    const existingRaw = localStorage.getItem('trainingRecords');
-    const existing    = existingRaw ? JSON.parse(existingRaw) : [];
-    existing.push({ user: getUser(), records });
-    localStorage.setItem('trainingRecords', JSON.stringify(existing));
-  } catch (err) {
-    console.error('Failed to save training records', err);
-  }
+function getSessionId() {
+    return parseInt(new URLSearchParams(window.location.search).get('session') ?? '1', 10);
 }
-
-function sendToBackend(payload) {
-  // TODO: replace console.log with a real fetch POST to your backend endpoint
-  // e.g.:
-  // fetch('/api/training', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(payload),
-  // });
-  console.log('Training payload to send to backend:', payload);
+function getSequenceTypes() {
+    const fromSequence = localStorage.getItem('sequence');
+    if (fromSequence) {
+        const types = fromSequence.split(',').map(s => s.trim()).filter(Boolean);
+        if (types.length > 0)
+            return types;
+    }
+    try {
+        const fromSelected = localStorage.getItem('selectedSequence');
+        if (fromSelected) {
+            const parsed = JSON.parse(fromSelected);
+            if (Array.isArray(parsed) && parsed.length > 0)
+                return parsed;
+        }
+    }
+    catch { }
+    return ['tap', 'swipe', 'scroll'];
+} // FIX: closing brace was missing — everything below was unreachable dead code
+function gestureOrientation(type) {
+    return type === 'scroll' ? 'vertical' : 'horizontal';
 }
-
-function log(data) {
-  console.debug('Gesture captured:', data);
+function isMultiTouch(type) {
+    return type === 'zoom' || type === 'pinch';
 }
-
-// ---------------------------------------------------------------------------
-// Touch events
-// ---------------------------------------------------------------------------
-surface?.addEventListener('touchstart', (e) => {
-  e.preventDefault();
-  const t = e.touches[0];
-  gestureStart(t.clientX, t.clientY);
-}, { passive: false });
-
-surface?.addEventListener('touchmove', (e) => {
-  e.preventDefault();
-  const t = e.touches[0];
-  gestureMove(t.clientX, t.clientY);
-}, { passive: false });
-
-surface?.addEventListener('touchend', (e) => {
-  e.preventDefault();
-  gestureEnd();
-}, { passive: false });
-
-// ---------------------------------------------------------------------------
-// Mouse events  (✅ NEW — lets desktop/laptop users use the gesture area)
-// ---------------------------------------------------------------------------
-surface?.addEventListener('mousedown', (e) => {
-  e.preventDefault();
-  mouseDown = true;
-  gestureStart(e.clientX, e.clientY);
-});
-
-surface?.addEventListener('mousemove', (e) => {
-  if (!mouseDown) return;
-  gestureMove(e.clientX, e.clientY);
-});
-
-// Listen on window so dragging outside the surface still ends the gesture
-window.addEventListener('mouseup', (e) => {
-  if (!mouseDown) return;
-  mouseDown = false;
-  gestureEnd();
-});
-
-// Cancel if mouse leaves the surface mid-drag (optional — comment out to keep recording)
-surface?.addEventListener('mouseleave', () => {
-  if (!mouseDown) return;
-  mouseDown = false;
-  gestureEnd();
-});
-
-// ---------------------------------------------------------------------------
-// Start button
-// ---------------------------------------------------------------------------
-startBtn?.addEventListener('click', () => {
-  trainingInstructionSet = readTrainingSelection();
-  trainingStepIndex      = 0;
-  trainingCurrentRep     = 0;
-  trainingRecords        = [];
-  gesture                = null;
-  mouseDown              = false;
-  mode                   = 'training';
-
-  if (startBtn) startBtn.style.display = 'none';
-  if (stopBtn)  stopBtn.style.display  = '';
-
-  // Reset continue button and clear previous results on restart
-  const continueBtn = document.getElementById('continue-btn');
-  if (continueBtn) continueBtn.style.display = 'none';
-  if (output) { output.innerHTML = ''; output.style.display = 'none'; }
-
-  updateInstructionDisplay();
-});
-
-// ---------------------------------------------------------------------------
-// Stop button
-// ---------------------------------------------------------------------------
-stopBtn?.addEventListener('click', () => {
-  mode      = 'idle';
-  gesture   = null;          // ✅ FIX: clear in-flight gesture
-  mouseDown = false;
-
-  // ✅ FIX: reset counters so a new Start isn't corrupted
-  const savedReps = trainingCurrentRep;
-  trainingStepIndex  = 0;
-  trainingCurrentRep = 0;
-
-  if (trainingStatus)    trainingStatus.textContent = 'Stopped';
-  if (stopBtn)  stopBtn.style.display  = 'none';
-  if (startBtn) startBtn.style.display = '';
-
-  saveToLocalStorage(trainingRecords);
-  sendToBackend({
-    user:     getUser(),
-    sequence: trainingInstructionSet,
-    records:  trainingRecords,
-    meta:     { stoppedAt: new Date().toISOString(), reps: savedReps },
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Show user info
-// ---------------------------------------------------------------------------
-try {
-  const raw = localStorage.getItem('user');
-  if (raw && userInfo) {
-    const u = JSON.parse(raw);
-    userInfo.innerHTML = `<strong>${u.name}</strong> — ${u.age} years`;
-  }
-} catch (_) {
-  if (userInfo) userInfo.textContent = 'Error reading user';
+const GESTURE_LABELS = {
+    tap: '👆 TAP — Touch and release quickly',
+    swipe: '👉 SWIPE — Slide finger left or right',
+    scroll: '👇 SCROLL — Slide finger up or down',
+    zoom: '🔍 ZOOM — Two fingers spreading apart',
+    pinch: '🤏 PINCH — Two fingers squeezing together',
+};
+const TOTAL_REPS = 10;
+let running = false;
+let capturing = false;
+let currentRep = 0;
+let currentGestureIdx = 0;
+let sequenceTypes = [];
+let currentEvents = [];
+let currentGestures = [];
+let completedSequences = [];
+let cleanupListeners = null;
+let surface;
+let statusEl;
+let instrEl;
+let startBtn;
+let stopBtn;
+let outputEl;
+let continueBtn;
+let userInfoEl;
+let backBtn;
+function log(msg) {
+    outputEl.style.display = 'block';
+    const line = document.createElement('div');
+    line.textContent = msg;
+    outputEl.appendChild(line);
+    outputEl.scrollTop = outputEl.scrollHeight;
 }
-
-// ---------------------------------------------------------------------------
-// Back button
-// ---------------------------------------------------------------------------
-backBtn?.addEventListener('click', () => {
-  window.location.href = 'selection.html';
+function setSurface(text, borderColor = '', bg = '') {
+    surface.textContent = text;
+    surface.style.borderColor = borderColor;
+    surface.style.background = bg;
+}
+function resetSurface() { setSurface('👆 Gesture Area'); }
+function attachListeners(gestureType) {
+    if (cleanupListeners)
+        cleanupListeners();
+    const multi = isMultiTouch(gestureType);
+    function onTouchStart(e) {
+        e.preventDefault();
+        if (!capturing || !running)
+            return;
+        captureTouches(e.changedTouches, e.timeStamp, multi);
+        setSurface('🔴 Recording…', 'var(--accent)', 'var(--accent-light)');
+    }
+    function onTouchMove(e) {
+        e.preventDefault();
+        if (!capturing || !running || currentEvents.length === 0)
+            return;
+        captureTouches(e.changedTouches, e.timeStamp, multi);
+    }
+    function onTouchEnd(e) {
+        e.preventDefault();
+        if (!capturing || !running || currentEvents.length === 0)
+            return;
+        if (multi && e.touches.length > 0)
+            return;
+        capturing = false;
+        cleanup();
+        finaliseGesture(gestureType);
+    }
+    function onMouseDown(e) {
+        if (!capturing || !running)
+            return;
+        currentEvents.push(mouseToPayload(e));
+        setSurface('🔴 Recording…', 'var(--accent)', 'var(--accent-light)');
+    }
+    function onMouseMove(e) {
+        if (!capturing || !running || currentEvents.length === 0 || e.buttons === 0)
+            return;
+        currentEvents.push(mouseToPayload(e));
+    }
+    function onMouseUp(_e) {
+        if (!capturing || !running || currentEvents.length === 0)
+            return;
+        capturing = false;
+        cleanup();
+        finaliseGesture(gestureType);
+    }
+    function cleanup() {
+        surface.removeEventListener('touchstart', onTouchStart);
+        surface.removeEventListener('touchmove', onTouchMove);
+        surface.removeEventListener('touchend', onTouchEnd);
+        surface.removeEventListener('mousedown', onMouseDown);
+        surface.removeEventListener('mousemove', onMouseMove);
+        surface.removeEventListener('mouseup', onMouseUp);
+        cleanupListeners = null;
+    }
+    cleanupListeners = cleanup;
+    surface.addEventListener('touchstart', onTouchStart, { passive: false });
+    surface.addEventListener('touchmove', onTouchMove, { passive: false });
+    surface.addEventListener('touchend', onTouchEnd, { passive: false });
+    surface.addEventListener('mousedown', onMouseDown);
+    surface.addEventListener('mousemove', onMouseMove);
+    surface.addEventListener('mouseup', onMouseUp);
+}
+function captureTouches(touchList, timeStamp, allFingers) {
+    const limit = allFingers ? touchList.length : 1;
+    for (let i = 0; i < limit; i++) {
+        const t = touchList[i];
+        if (!t)
+            continue;
+        currentEvents.push({
+            timestamp: timeStamp,
+            x: t.clientX,
+            y: t.clientY,
+            pressure: t.force ?? 0.5,
+            finger_id: t.identifier,
+        });
+    }
+}
+function mouseToPayload(e) {
+    return { timestamp: e.timeStamp, x: e.clientX, y: e.clientY, pressure: 0.5, finger_id: 0 };
+}
+function promptGesture(gestureType) {
+    if (!gestureType) {
+        console.error('[training] promptGesture called with undefined — check sequence config');
+        return;
+    }
+    capturing = true;
+    currentEvents = [];
+    statusEl.textContent = `Rep ${currentRep + 1} / ${TOTAL_REPS}  ·  Step ${currentGestureIdx + 1} / ${sequenceTypes.length}`;
+    instrEl.textContent = GESTURE_LABELS[gestureType] ?? gestureType.toUpperCase();
+    resetSurface();
+    attachListeners(gestureType);
+}
+function finaliseGesture(gestureType) {
+    const events = currentEvents.slice();
+    currentEvents = [];
+    if (events.length < 1) {
+        log(`⚠️ Rep ${currentRep + 1}: gesture too short — please try again.`);
+        setSurface('⚠️ Too short — try again');
+        setTimeout(() => { if (running)
+            promptGesture(gestureType); }, 800);
+        return;
+    }
+    currentGestures.push({ gesture_type: gestureType, orientation: gestureOrientation(gestureType), events });
+    log(`✓ Rep ${currentRep + 1}: ${gestureType} — ${events.length} events`);
+    setSurface('✅ Got it!', 'var(--success)', '#f0fdf4');
+    setTimeout(() => {
+        currentGestureIdx++;
+        if (currentGestureIdx < sequenceTypes.length) {
+            promptGesture(sequenceTypes[currentGestureIdx]);
+        }
+        else {
+            finaliseRep();
+        }
+    }, 700);
+}
+function finaliseRep() {
+    completedSequences.push({ gestures: currentGestures.slice() });
+    currentGestures = [];
+    currentGestureIdx = 0;
+    currentRep++;
+    if (currentRep < TOTAL_REPS && running) {
+        statusEl.textContent = `Rep ${currentRep} complete ✓  —  Get ready…`;
+        instrEl.textContent = 'Prepare for next rep…';
+        resetSurface();
+        setTimeout(() => {
+            if (running)
+                promptGesture(sequenceTypes[0]);
+        }, 1200);
+    }
+    else {
+        void sendToBackend();
+    }
+}
+async function sendToBackend() {
+    running = false;
+    capturing = false;
+    if (cleanupListeners)
+        cleanupListeners();
+    startBtn.style.display = 'none';
+    stopBtn.style.display = 'none';
+    statusEl.textContent = '⏳ Sending data to backend…';
+    instrEl.textContent = 'Please wait…';
+    resetSurface();
+    try {
+        const existing = JSON.parse(localStorage.getItem('trainingRecords') ?? '[]');
+        existing.push({ user: getUser(), sequences: completedSequences, completedAt: new Date().toISOString() });
+        localStorage.setItem('trainingRecords', JSON.stringify(existing));
+    }
+    catch { }
+    const user = getUser();
+    const pid = user.participantId ?? 'unknown';
+    const sessionId = getSessionId();
+    try {
+        const result = await submitGestures({ participantId: pid, sessionId, sequences: completedSequences, mode: 'train' });
+        const status = result['status'];
+        statusEl.textContent =
+            status === 'trained' ? `✅ Model trained!  Threshold: ${result['threshold']}` :
+                status === 'pending' ? `📦 ${result['message']}` :
+                    `ℹ️ ${result['message']}`;
+        instrEl.textContent = 'Training complete!';
+        log(`\n📤 Sent ${completedSequences.length} sequences — status: ${status}`);
+        if (status === 'trained') {
+            localStorage.setItem('model_id', String(result['model_id'] ?? pid));
+        }
+    }
+    catch (err) {
+        statusEl.textContent = `❌ Backend error: ${err.message}`;
+        log(`❌ ${err.message}`);
+    }
+    continueBtn.style.display = 'flex';
+}
+function initButtons() {
+    startBtn.addEventListener('click', () => {
+        sequenceTypes = getSequenceTypes();
+        if (sequenceTypes.length === 0) {
+            log('⚠️ No gesture sequence configured.');
+            return;
+        }
+        running = true;
+        capturing = false;
+        currentRep = 0;
+        currentGestureIdx = 0;
+        currentGestures = [];
+        completedSequences = [];
+        startBtn.style.display = 'none';
+        stopBtn.style.display = 'inline-flex';
+        continueBtn.style.display = 'none';
+        outputEl.innerHTML = '';
+        outputEl.style.display = 'block';
+        instrEl.style.color = '';
+        log(`▶ Session ${getSessionId()} · Sequence: ${sequenceTypes.join(' → ')} · ${TOTAL_REPS} reps`);
+        promptGesture(sequenceTypes[0]);
+    });
+    stopBtn.addEventListener('click', () => {
+        running = false;
+        capturing = false;
+        if (cleanupListeners)
+            cleanupListeners();
+        startBtn.style.display = 'inline-flex';
+        stopBtn.style.display = 'none';
+        statusEl.textContent = 'Stopped — press Start to retry.';
+        instrEl.textContent = 'Ready';
+        instrEl.style.color = '';
+        resetSurface();
+    });
+    backBtn.addEventListener('click', () => {
+        if (!running || confirm('Stop training and go back?')) {
+            running = false;
+            if (cleanupListeners)
+                cleanupListeners();
+            window.location.href = 'selection.html';
+        }
+    });
+}
+document.addEventListener('DOMContentLoaded', () => {
+    surface = document.getElementById('surface');
+    statusEl = document.getElementById('training-status');
+    instrEl = document.getElementById('current-instruction');
+    startBtn = document.getElementById('start-training');
+    stopBtn = document.getElementById('stop-training');
+    outputEl = document.getElementById('output');
+    continueBtn = document.getElementById('continue-btn');
+    userInfoEl = document.getElementById('user-info');
+    backBtn = document.getElementById('back-button');
+    const missing = [
+        ['surface', surface],
+        ['training-status', statusEl],
+        ['current-instruction', instrEl],
+        ['start-training', startBtn],
+        ['stop-training', stopBtn],
+        ['output', outputEl],
+        ['continue-btn', continueBtn],
+        ['user-info', userInfoEl],
+        ['back-button', backBtn],
+    ].filter(([, el]) => !el).map(([id]) => id);
+    if (missing.length > 0) {
+        console.error(`[training] Missing DOM elements: ${missing.join(', ')}. Check your HTML IDs.`);
+        return;
+    }
+    const user = getUser();
+    userInfoEl.textContent = user.name
+        ? `${user.name}${user.participantId ? ' · ' + user.participantId : ''}`
+        : 'Unknown user';
+    startBtn.style.display = 'inline-flex';
+    stopBtn.style.display = 'none';
+    continueBtn.style.display = 'none';
+    initButtons();
 });
-
-// Initial UI state
-updateInstructionDisplay();
+//# sourceMappingURL=training.js.map

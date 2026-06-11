@@ -173,7 +173,7 @@ function finaliseGesture(gestureType: GestureType): void {
   const events  = currentEvents.slice();
   currentEvents = [];
 
-  if (events.length < 2) {
+  if (events.length < 1) {
     log(`⚠️ Rep ${currentRep + 1}: gesture too short — please try again.`);
     setSurface('⚠️ Too short — try again');
     setTimeout(() => { if (running) promptGesture(gestureType); }, 800);
@@ -243,7 +243,7 @@ async function sendToBackend(): Promise<void> {
     instrEl.textContent = 'Training complete!';
     log(`\n📤 Sent ${completedSequences.length} sequences — status: ${status}`);
     if (status === 'trained') {
-      localStorage.setItem('model_id', String(result['model_id'] ?? ''));
+      localStorage.setItem('model_id', String(result['model_id'] ?? pid));
     }
   } catch (err) {
     statusEl.textContent = `❌ Backend error: ${(err as Error).message}`;

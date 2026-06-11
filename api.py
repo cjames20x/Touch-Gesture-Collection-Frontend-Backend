@@ -163,6 +163,7 @@ def submit_gestures():
     return jsonify({
         "status"    : "trained",
         "message"   : f"Model trained for {pid}.",
+        "model_id"  : pid,
         "n_train"   : len(train_seqs),
         "threshold" : round(float(model.threshold), 4),
     })

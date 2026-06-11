@@ -1,6 +1,5 @@
 const info       = document.getElementById('user-info');
-const toTraining = document.getElementById('to-training');
-const toEval     = document.getElementById('to-eval');
+const continueBtn = document.getElementById('to-eval');
 
 function getSelectedSession(): string | null {
     return (document.querySelector('input[name="session"]:checked') as HTMLInputElement | null)?.value ?? null;
@@ -20,29 +19,34 @@ function renderUser() {
     }
 }
 
-toTraining?.addEventListener('click', () => {
+continueBtn?.addEventListener('click', () => {
     const session = getSelectedSession();
     if (!session) {
         alert('Please select a session.');
         return;
     }
     localStorage.setItem('session', session);
-    window.location.href = 'sequence.html';
+   if (session === '1') {
+        window.location.href = 'training.html?session=1';
+   } else {
+        window.location.href = 'eval.html?mode=authentication&session=3';
+   }
 });
 
-toEval?.addEventListener('click', () => {
-    const session = getSelectedSession();
-    if (!session) {
-        alert('Please select a session.');
-        return;
-    }
-    localStorage.setItem('session', session);
-    window.location.href = 'eval.html';
-});
+function attachSessionCardListeners(): void {
+    document.querySelectorAll('.session-card').forEach(card => {
+        card.addEventListener('click', function(this: HTMLElement) {
+            document.querySelectorAll('.session-card').forEach(c => c.classList.remove('selected'));
+            this.classList.add('selected');
+            const input = this.querySelector('input[name="session"]') as HTMLInputElement | null;
+            if (input) input.checked = true;
+        });
+    });
+}
 
 function selectSession(n: number) {
-    [1, 2, 3].forEach(i => {
-        const el = document.getElementById('session' + i);
+    [1, 3].forEach(i => {
+        const el = document.getElementById('sess' + i);
         if (el) {
             el.classList.toggle('selected', i === n);
             const input = el.querySelector('input[name="session"]') as HTMLInputElement | null;
@@ -53,4 +57,5 @@ function selectSession(n: number) {
 
 (window as any).selectSession = selectSession;
 
+attachSessionCardListeners();
 renderUser();

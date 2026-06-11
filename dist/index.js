@@ -3,7 +3,7 @@ const surface = document.getElementById('surface');
 const output = document.getElementById('output');
 const resetButton = document.getElementById('reset');
 const instructionDisplay = document.getElementById('current-instruction');
-
+// registration + navigation elements
 const registerForm = document.getElementById('register-form');
 const registrationSection = document.getElementById('registration');
 const postRegister = document.getElementById('post-register');
@@ -16,10 +16,10 @@ const trainingStatus = document.getElementById('training-status');
 const evalSection = document.getElementById('eval');
 const backFromEval = document.getElementById('back-from-eval');
 let gesture = null;
-
+// default instruction set for the normal mode
 let instructionSet = ['tap', 'swipe', 'scroll'];
 let instructionIndex = 0;
-
+// training state
 let mode = 'idle';
 let trainingInstructionSet = [];
 let trainingStepIndex = 0;
@@ -58,7 +58,7 @@ function reset() {
     instructionIndex = 0;
     updateInstructionDisplay();
 }
-
+// read selected instruction set radios and reset index when changed
 document.querySelectorAll('input[name="instructions"]').forEach(r => {
     r.addEventListener('change', () => {
         const selected = document.querySelector('input[name="instructions"]:checked');
@@ -69,7 +69,8 @@ document.querySelectorAll('input[name="instructions"]').forEach(r => {
         updateInstructionDisplay();
     });
 });
-
+// training instruction selector
+// training instruction selector: prefer stored sequence from sequence.html
 function readTrainingSelection() {
     try {
         const raw = localStorage.getItem('selectedSequence');
@@ -79,7 +80,7 @@ function readTrainingSelection() {
                 return parsed;
         }
     }
-    catch (err) {  }
+    catch (err) { /* ignore and fallback */ }
     return ['tap', 'swipe', 'scroll'];
 }
 updateInstructionDisplay();
@@ -112,14 +113,15 @@ function end() {
     };
     if (mode === 'training') {
         trainingRecords.push(data);
-
+        // advance training step
         trainingStepIndex++;
         if (trainingStepIndex >= trainingInstructionSet.length) {
             trainingStepIndex = 0;
             trainingCurrentRep++;
         }
+        // check for completion
         if (trainingCurrentRep >= trainingRepsTarget) {
-
+            // training finished
             mode = 'idle';
             if (trainingStatus)
                 trainingStatus.textContent = 'Training complete';
@@ -127,7 +129,7 @@ function end() {
                 stopTrainingBtn.style.display = 'none';
             if (startTrainingBtn)
                 startTrainingBtn.style.display = '';
-
+            // persist training records to localStorage
             try {
                 const existingRaw = localStorage.getItem('trainingRecords');
                 const existing = existingRaw ? JSON.parse(existingRaw) : [];
@@ -137,6 +139,7 @@ function end() {
             catch (err) {
                 console.error('Failed to save training records', err);
             }
+            // Prepare payload to send to backend 
             try {
                 const user = JSON.parse(localStorage.getItem('user') || 'null');
                 const payload = {
@@ -154,6 +157,7 @@ function end() {
         }
     }
     else {
+        // normal mode: advance instruction index cyclically
         if (instructionSet.length > 0) {
             instructionIndex = (instructionIndex + 1) % instructionSet.length;
         }

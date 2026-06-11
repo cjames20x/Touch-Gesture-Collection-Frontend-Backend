@@ -18,6 +18,14 @@ function getSessionId(): number {
   return parseInt(new URLSearchParams(window.location.search).get('session') ?? '2', 10);
 }
 
+function getEvalMode(): string {
+  return new URLSearchParams(window.location.search).get('mode') ?? 'evaluation';
+}
+
+function getTotalEvalReps(): number {
+  return getEvalMode() === 'authentication' ? 1 : 5;
+}
+
 function getSequenceTypes(): GestureType[] {
   const raw = localStorage.getItem('sequence') ?? 'tap,swipe,scroll';
   const types = raw.split(',').map(s => s.trim()).filter(Boolean) as GestureType[];
@@ -40,7 +48,7 @@ const GESTURE_LABELS: Record<string, string> = {
   pinch : '🤏 PINCH — Two fingers squeezing together',
 };
 
-const TOTAL_EVAL_REPS = 5;
+const TOTAL_EVAL_REPS = getTotalEvalReps();
 
 let surface    : HTMLDivElement;
 let statusEl   : HTMLDivElement;
@@ -83,11 +91,12 @@ function setPopup(message: string, state: 'checking' | 'connected' | 'offline'):
 async function checkAPIHealth(): Promise<void> {
   setPopup('⏳ Checking API connection...', 'checking');
   try {
-    const res  = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(3000) });
+    const res  = await fetch(`${API_BASE}/ping`, { signal: AbortSignal.timeout(3000) });
+    console.log(res);
     const data = await res.json();
     apiConnected = res.ok && data.status === 'ok';
     if (apiConnected) {
-      setPopup(`🟢 API connected — models: ${data.models}  datasets: ${data.datasets}`, 'connected');
+      setPopup('🟢 API connected', 'connected');
     } else {
       setPopup('🔴 API responded but returned unexpected status', 'offline');
     }
@@ -207,7 +216,7 @@ function finaliseGesture(gestureType: GestureType): void {
   const events  = currentEvents.slice();
   currentEvents = [];
 
-  if (events.length < 2) {
+  if (events.length < 1) {
     log(`⚠️ Eval ${currentRep + 1}: gesture too short — please try again.`);
     setSurface('⚠️ Too short — try again');
     setTimeout(() => { if (running) promptGesture(gestureType); }, 800);
@@ -265,7 +274,7 @@ async function finaliseEvalRep(): Promise<void> {
   }
 
   try {
-    const result = await authenticate({ participantId: pid, sessionId, modelId, sequence });
+    const result = await authenticate({ participantId: pid, sessionId, sequence });
     if (result.accepted) {
       accepted++;
       log(`✅ Rep ${currentRep + 1}: ACCEPTED  (LL: ${result.log_likelihood}  θ: ${result.threshold})`, 'var(--success)');
@@ -365,12 +374,12 @@ function initStopButton(): void {
 
 document.addEventListener('DOMContentLoaded', () => {
   surface    = document.getElementById('surface')             as HTMLDivElement;
-  statusEl   = document.getElementById('training-status')     as HTMLDivElement;
-  instrEl    = document.getElementById('current-instruction') as HTMLDivElement;
-  startBtn   = document.getElementById('start-eval')          as HTMLButtonElement;
-  stopBtn    = document.getElementById('stop-eval')           as HTMLButtonElement;
+  statusEl   = document.getElementById('instruction-label')   as HTMLDivElement;
+  instrEl    = document.getElementById('instruction-text')    as HTMLDivElement;
+  startBtn   = document.getElementById('start-btn')           as HTMLButtonElement;
+  stopBtn    = document.getElementById('stop-btn')            as HTMLButtonElement;
   outputEl   = document.getElementById('output')              as HTMLDivElement;
-  doneBtn    = document.getElementById('done-btn')            as HTMLAnchorElement;
+  doneBtn    = document.getElementById('next-btn')            as HTMLAnchorElement;
   userInfoEl = document.getElementById('user-info')           as HTMLDivElement;
 
   // FIX: added `as [string, Element | null][]` so TypeScript correctly types
@@ -378,12 +387,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // distinguish the string key slot from the element slot and emits a type error.
   const missing = ([
     ['surface',              surface],
-    ['training-status',      statusEl],
-    ['current-instruction',  instrEl],
-    ['start-eval',           startBtn],
-    ['stop-eval',            stopBtn],
+    ['instruction-label',    statusEl],
+    ['instruction-text',     instrEl],
+    ['start-btn',            startBtn],
+    ['stop-btn',             stopBtn],
     ['output',               outputEl],
-    ['done-btn',             doneBtn],
+    ['next-btn',             doneBtn],
     ['user-info',            userInfoEl],
   ] as [string, Element | null][]).filter(([, el]) => !el).map(([id]) => id);
 

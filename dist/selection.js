@@ -1,6 +1,5 @@
 const info = document.getElementById('user-info');
-const toTraining = document.getElementById('to-training');
-const toEval = document.getElementById('to-eval');
+const continueBtn = document.getElementById('to-eval');
 function getSelectedSession() {
     return document.querySelector('input[name="session"]:checked')?.value ?? null;
 }
@@ -21,34 +20,44 @@ function renderUser() {
             info.textContent = 'Error reading user info.';
     }
 }
-toTraining?.addEventListener('click', () => {
+continueBtn?.addEventListener('click', () => {
     const session = getSelectedSession();
     if (!session) {
         alert('Please select a session.');
         return;
     }
     localStorage.setItem('session', session);
-    window.location.href = 'sequence.html';
-});
-toEval?.addEventListener('click', () => {
-    const session = getSelectedSession();
-    if (!session) {
-        alert('Please select a session.');
-        return;
+    if (session === '1') {
+        window.location.href = 'training.html?session=1';
     }
-    localStorage.setItem('session', session);
-    window.location.href = 'eval.html';
+    else {
+        window.location.href = 'eval.html?mode=authentication&session=3';
+    }
 });
+function attachSessionCardListeners() {
+    document.querySelectorAll('.session-card').forEach(card => {
+        card.addEventListener('click', function () {
+            document.querySelectorAll('.session-card').forEach(c => c.classList.remove('selected'));
+            this.classList.add('selected');
+            const input = this.querySelector('input[name="session"]');
+            if (input)
+                input.checked = true;
+        });
+    });
+}
 function selectSession(n) {
-    [1, 2, 3].forEach(i => {
+    [1, 3].forEach(i => {
         const el = document.getElementById('sess' + i);
-        el?.classList.toggle('selected', i === n);
-        const input = el?.querySelector('input');
-        if (input)
-            input.checked = (i === n);
+        if (el) {
+            el.classList.toggle('selected', i === n);
+            const input = el.querySelector('input[name="session"]');
+            if (input)
+                input.checked = (i === n);
+        }
     });
 }
 window.selectSession = selectSession;
+attachSessionCardListeners();
 renderUser();
 export {};
 //# sourceMappingURL=selection.js.map
