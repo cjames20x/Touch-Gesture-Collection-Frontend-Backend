@@ -20,7 +20,7 @@ from gesture_data import (
     TouchEvent,
 )
 from feature_extractor import FeatureExtractor, ZScoreNormaliser, FEATURE_NAMES
-from hmm_trainer import train_user_model, UserHMM, compute_eer_threshold
+from hmm import train_user_model, UserHMM, compute_eer_threshold
 from evaluator import (
     AuthEvaluationPipeline,
     UserResult,

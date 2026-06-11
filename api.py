@@ -13,7 +13,7 @@ from gesture_data import (
     VALID_GESTURE_TYPES,
 )
 from feature_extractor import FeatureExtractor, ZScoreNormaliser
-from hmm_trainer import train_user_model
+from hmm import train_user_model
 
 app = Flask(__name__)
 CORS(app)
@@ -61,7 +61,7 @@ def _parse_sequence(raw: dict, participant_id: str, session_id: int) -> GestureS
         orient = g.get("orientation", "horizontal")
 
         if g_type not in VALID_GESTURE_TYPES:
-            g_type = "tap"                          # graceful fallback
+            g_type = "tap"
 
         events = [
             TouchEvent(
@@ -111,7 +111,7 @@ def submit_gestures():
     data          = request.json
     pid           = data.get("participant_id", "unknown")
     session_id    = int(data.get("session_id", 1))
-    mode          = data.get("mode", "train")       # "train" | "eval"
+    mode          = data.get("mode", "train")
     raw_sequences = data.get("sequences", [])
 
     parsed = []
