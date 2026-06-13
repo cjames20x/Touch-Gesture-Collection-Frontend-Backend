@@ -5,122 +5,39 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Training</title>
     <link rel="stylesheet" href="index.css" />
-    <style>
-      .card {
-        max-width: 380px;
-        padding: 22px 20px;
-        gap: 14px;
-        height: calc(100vh - 40px);
-      }
-
-      .training-panel {
-        flex: 1;
-        display: flex;
-        align-items: stretch;
-        min-height: 0;
-      }
-
-      .training-panel #surface {
-        width: 100%;
-        flex: 1;
-        height: auto;
-      }
-
-      .training-status-stack {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        align-items: center;
-        text-align: center;
-      }
-
-      #training-status,
-      #current-instruction {
-        font-size: 0.72rem;
-        line-height: 1.2;
-      }
-
-      .training-status-stack p {
-        margin: 0;
-        white-space: nowrap;
-      }
-
-      .training-status-stack #training-status {
-        font-weight: 700;
-      }
-
-      .training-controls {
-        display: flex;
-        justify-content: center;
-      }
-
-      .training-controls button {
-        width: 100%;
-        max-width: 220px;
-      }
-
-      .training-controls button:only-child {
-        margin: 0 auto;
-      }
-    </style>
   </head>
-  <body>
+  <body class="training-page">
     <div class="page">
       <div class="card">
-
-        <div class="nav-bar" style="justify-content:space-between">
-          <button id="back-button" class="btn-back" style="background:none;font-family:inherit">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                 stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px">
+        <div class="nav-bar">
+          <button id="back-button" class="btn-back">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px">
               <path d="M15 18l-6-6 6-6"/>
             </svg>
             Back
           </button>
-          <div id="user-info" style="font-size:0.78rem">Loading...</div>
-        </div>
-
-        <div class="app-icon">
-          <svg viewBox="0 0 24 24">
-            <path d="M12 2a5 5 0 1 1 0 10A5 5 0 0 1 12 2zm0 12c5.33 0 8 2.67 8 4v2H4v-2c0-1.33 2.67-4 8-4z"/>
-          </svg>
-        </div>
-
-        <div class="training-status-stack">
-          <p id="training-status">Rep 1 / 10</p>
-          <p id="current-instruction">Step 1 / 3</p>
-        </div>
-
-        <div class="training-controls">
-          <button id="start-training" class="btn-primary">▶ Start Training</button>
-          <button id="stop-training"  class="btn-secondary" style="display:none">■ Stop</button>
+          <div id="user-info">Loading...</div>
         </div>
 
         <div class="training-panel">
-          <div id="surface" style="
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          min-height:320px;
-          border:2px dashed var(--muted);
-          border-radius:12px;
-          color:var(--muted);
-          font-size:0.85rem;
-          font-weight:600;
-          letter-spacing:0.02em;
-          user-select:none;
-          -webkit-user-select:none;
-          touch-action:none;
-          cursor:crosshair;
-          ">
-            👆 Gesture Area
+          <div id="surface">👆 Gesture Area</div>
+        </div>
+
+        <div class="training-footer">
+          <div class="training-status-stack">
+            <p id="training-status">Rep 1 / 10</p>
+            <p id="current-instruction">Step 1 / 3</p>
+          </div>
+
+          <div class="training-controls">
+            <button id="start-training" class="btn-primary">▶ Start Training</button>
+            <button id="stop-training" class="btn-secondary" style="display:none">■ Stop</button>
           </div>
         </div>
 
-        <a id="continue-btn" class="btn-primary" href="selection.html"
-           style="display:none;text-align:center;text-decoration:none">
+        <a id="continue-btn" class="btn-primary" href="selection.html">
           ← Back to Session
         </a>
-
       </div>
     </div>
 
