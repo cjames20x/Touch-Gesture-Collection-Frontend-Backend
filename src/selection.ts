@@ -12,8 +12,8 @@ function renderUser() {
             if (info) info.textContent = 'No user found. Please register first.';
             return;
         }
-        const user = JSON.parse(raw) as { name: string; age: number; gender: string; participantId: string };
-        if (info) info.innerHTML = `<p><strong>${user.name}</strong> — ${user.age} years old (${user.gender})</p>`;
+        const user = JSON.parse(raw) as { name: string; participantId: string };
+        if (info) info.innerHTML = `<p><strong>${user.name}</strong>${user.participantId ? ` · ${user.participantId}` : ''}</p>`;
     } catch {
         if (info) info.textContent = 'Error reading user info.';
     }

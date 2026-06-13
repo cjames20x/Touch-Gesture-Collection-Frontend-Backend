@@ -27,39 +27,6 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="age">Age</label>
-            <input class="form-input" id="age" name="age" type="number" min="1" max="150" placeholder="Enter your age" required inputmode="numeric" />
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Select Gender</label>
-            <div class="gender-row">
-              <div class="gender-option" id="gender-male" onclick="document.getElementById('radio-male').checked=true">
-                <svg viewBox="0 0 24 24" width="32" height="32" fill="none"
-                    stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="10" cy="14" r="5"/>
-                  <line x1="14" y1="10" x2="20" y2="4"/>
-                  <polyline points="16,4 20,4 20,8"/>
-                </svg>
-                Male
-              </div>
-              <div class="gender-option" id="gender-female" onclick="document.getElementById('radio-female').checked=true">
-                <svg viewBox="0 0 24 24" width="32" height="32" fill="none"
-                    stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="9" r="5"/>
-                  <line x1="12" y1="14" x2="12" y2="21"/>
-                  <line x1="9" y1="18" x2="15" y2="18"/>
-                </svg>
-                Female
-              </div>
-            </div>
-            <input type="radio" name="gender" value="male"   id="radio-male"   style="display:none" required />
-            <input type="radio" name="gender" value="female" id="radio-female" style="display:none" required />
-          </div>
-
-          <div class="form-group">
             <label class="form-label" for="participant-id">Participant ID</label>
             <input class="form-input" id="participant-id" name="participantId" placeholder="e.g. P001" autocomplete="off" />
           </div>
@@ -74,61 +41,23 @@
 
     <script>
       (function () {
-        const maleBtn    = document.getElementById('gender-male');
-        const femaleBtn  = document.getElementById('gender-female');
-        const radioMale  = document.getElementById('radio-male');
-        const radioFemale = document.getElementById('radio-female');
-
-        function selectGender(gender) {
-          if (gender === 'male') {
-            radioMale.checked   = true;
-            radioFemale.checked = false;
-            maleBtn.classList.add('selected');
-            femaleBtn.classList.remove('selected');
-          } else {
-            radioFemale.checked = true;
-            radioMale.checked   = false;
-            femaleBtn.classList.add('selected');
-            maleBtn.classList.remove('selected');
-          }
-        }
-
-        maleBtn.addEventListener('click',   function () { selectGender('male'); });
-        femaleBtn.addEventListener('click', function () { selectGender('female'); });
-
-        [maleBtn, femaleBtn].forEach(function (el) {
-          el.setAttribute('tabindex', '0');
-          el.setAttribute('role', 'radio');
-          el.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
-          });
-        });
-      })();
-
-      (function () {
         const form = document.getElementById('register-form');
 
         form.addEventListener('submit', function (e) {
           e.preventDefault();
 
           const name   = document.getElementById('name').value.trim();
-          const age    = parseInt(document.getElementById('age').value, 10);
-          const gender = (document.querySelector('input[name="gender"]:checked') || {}).value || '';
           const rawPid = document.getElementById('participant-id').value.trim();
           // Derive participantId from name when left blank
           const participantId = rawPid || name.replace(/\s+/g, '_').toLowerCase();
 
-          if (!name || isNaN(age)) {
-            alert('Please enter your name and age.');
-            return;
-          }
-          if (!gender) {
-            alert('Please select a gender.');
+          if (!name) {
+            alert('Please enter your name.');
             return;
           }
 
           try {
-            localStorage.setItem('user', JSON.stringify({ name, age, gender, participantId }));
+            localStorage.setItem('user', JSON.stringify({ name, participantId }));
           } catch (err) {
             alert('Could not save user info — localStorage may be blocked in your browser.');
             return;
