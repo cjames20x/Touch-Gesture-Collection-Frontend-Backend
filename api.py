@@ -205,6 +205,6 @@ def authenticate():
 if __name__ == "__main__":
     print("\n" + "=" * 50)
     print("  Flask backend running")
-    print("  Open:  http://localhost:5000")
+    print("  Open:  http://localhost:1000")
     print("=" * 50 + "\n")
-    app.run(host="0.0.0.0", debug=True, port=5000)
+    app.run(host="0.0.0.0", debug=True, port=1000)
