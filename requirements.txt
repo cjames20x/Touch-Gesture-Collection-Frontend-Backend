@@ -5,4 +5,4 @@ pydantic>=1.10.0
 scipy>=1.9.0
 scikit-learn
 flask
-flask_cors
+flask-cors
