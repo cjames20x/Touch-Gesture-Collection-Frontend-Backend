@@ -32,8 +32,14 @@ let trainingRepsTarget = 10;
 let trainingCurrentRep = 0;
 let trainingRecords: GestureDataRaw[] = [];
 
+const STEP_LABELS = ['First gesture', 'Second gesture', 'Third gesture'];
+
 function capitalize(s: string) {
     return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function getStepLabel(index: number): string {
+    return STEP_LABELS[index] ?? `Gesture ${index + 1}`;
 }
 
 function getCurrentInstruction(): string {
@@ -50,10 +56,10 @@ function getCurrentInstruction(): string {
 function updateInstructionDisplay() {
     if (!instructionDisplay) return;
     if (mode === 'training') {
-        instructionDisplay.textContent = `Training: ${capitalize(getCurrentInstruction())} (rep ${trainingCurrentRep + 1}/${trainingRepsTarget})`;
+        instructionDisplay.textContent = `Training: ${getStepLabel(trainingStepIndex)} (rep ${trainingCurrentRep + 1}/${trainingRepsTarget})`;
         if (trainingStatus) trainingStatus.textContent = `Step ${trainingStepIndex + 1} / ${trainingInstructionSet.length}`;
     } else {
-        instructionDisplay.textContent = `Next: ${capitalize(getCurrentInstruction())}`;
+        instructionDisplay.textContent = `Next: ${getStepLabel(instructionIndex)}`;
     }
 }
 

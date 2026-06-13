@@ -35,13 +35,7 @@ function isMultiTouch(type: GestureType): boolean {
   return type === 'zoom' || type === 'pinch';
 }
 
-const GESTURE_LABELS: Record<string, string> = {
-  tap   : '👆 TAP — Touch and release quickly',
-  swipe : '👉 SWIPE — Slide finger left or right',
-  scroll: '👇 SCROLL — Slide finger up or down',
-  zoom  : '🔍 ZOOM — Two fingers spreading apart',
-  pinch : '🤏 PINCH — Two fingers squeezing together',
-};
+const STEP_LABELS = ['First gesture', 'Second gesture', 'Third gesture'];
 
 const TOTAL_REPS = 10;
 
@@ -64,6 +58,10 @@ let outputEl    : HTMLDivElement;
 let continueBtn : HTMLAnchorElement;
 let userInfoEl  : HTMLDivElement;
 let backBtn     : HTMLButtonElement;
+
+function getStepLabel(index: number): string {
+  return STEP_LABELS[index] ?? `Gesture ${index + 1}`;
+}
 
 function log(msg: string): void {
   outputEl.style.display = 'block';
@@ -164,7 +162,7 @@ function promptGesture(gestureType: GestureType): void {
   capturing     = true;
   currentEvents = [];
   statusEl.textContent = `Rep ${currentRep + 1} / ${TOTAL_REPS}  ·  Step ${currentGestureIdx + 1} / ${sequenceTypes.length}`;
-  instrEl.textContent  = GESTURE_LABELS[gestureType] ?? gestureType.toUpperCase();
+  instrEl.textContent  = `${getStepLabel(currentGestureIdx)} (${currentRep + 1}/${TOTAL_REPS})`;
   resetSurface();
   attachListeners(gestureType);
 }

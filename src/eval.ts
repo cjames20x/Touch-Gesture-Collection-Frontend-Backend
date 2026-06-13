@@ -2,6 +2,8 @@ import { authenticate, type SequencePayload, type GesturePayload, type TouchEven
 
 type GestureType = 'tap' | 'swipe' | 'scroll' | 'zoom' | 'pinch';
 
+const STEP_LABELS = ['First gesture', 'Second gesture', 'Third gesture'];
+
 function getUser(): { participantId: string; name: string } {
   try {
     const raw  = localStorage.getItem('user') ?? '{}';
@@ -32,6 +34,10 @@ function getSequenceTypes(): GestureType[] {
   return types.length > 0 ? types : ['tap', 'swipe', 'scroll'];
 }
 
+function getStepLabel(index: number): string {
+  return STEP_LABELS[index] ?? `Gesture ${index + 1}`;
+}
+
 function gestureOrientation(type: GestureType): string {
   return type === 'scroll' ? 'vertical' : 'horizontal';
 }
@@ -39,14 +45,6 @@ function gestureOrientation(type: GestureType): string {
 function isMultiTouch(type: GestureType): boolean {
   return type === 'zoom' || type === 'pinch';
 }
-
-const GESTURE_LABELS: Record<string, string> = {
-  tap   : '👆 TAP — Touch and release quickly',
-  swipe : '👉 SWIPE — Slide finger left or right',
-  scroll: '👇 SCROLL — Slide finger up or down',
-  zoom  : '🔍 ZOOM — Two fingers spreading apart',
-  pinch : '🤏 PINCH — Two fingers squeezing together',
-};
 
 const TOTAL_EVAL_REPS = getTotalEvalReps();
 
@@ -207,7 +205,7 @@ function promptGesture(gestureType: GestureType): void {
   capturing     = true;
   currentEvents = [];
   statusEl.textContent = `Eval ${currentRep + 1} / ${TOTAL_EVAL_REPS}  ·  Step ${currentGestureIdx + 1} / ${sequenceTypes.length}`;
-  instrEl.textContent  = GESTURE_LABELS[gestureType] ?? gestureType.toUpperCase();
+  instrEl.textContent  = `${getStepLabel(currentGestureIdx)} (${currentRep + 1}/${TOTAL_EVAL_REPS})`;
   resetSurface();
   attachListeners(gestureType);
 }
@@ -217,7 +215,7 @@ function finaliseGesture(gestureType: GestureType): void {
   currentEvents = [];
 
   if (events.length < 1) {
-    log(`⚠️ Eval ${currentRep + 1}: gesture too short — please try again.`);
+    log(`⚠️ Eval ${currentRep + 1}: step too short — please try again.`);
     setSurface('⚠️ Too short — try again');
     setTimeout(() => { if (running) promptGesture(gestureType); }, 800);
     return;
@@ -353,7 +351,7 @@ function initStartButton(): void {
     doneBtn.style.display  = 'none';
     instrEl.style.color    = '';
 
-    log(`▶ Evaluation · Session ${getSessionId()} · Sequence: ${sequenceTypes.join(' → ')} · ${TOTAL_EVAL_REPS} reps`);
+    log(`▶ Evaluation · Session ${getSessionId()} · Sequence: ${sequenceTypes.map((_, index) => getStepLabel(index)).join(' → ')} · ${TOTAL_EVAL_REPS} reps`);
     promptGesture(sequenceTypes[0] as GestureType);
   });
 }

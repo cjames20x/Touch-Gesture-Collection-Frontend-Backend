@@ -8,7 +8,7 @@ saveBtn.addEventListener('click', () => {
     return;
   }
 
-  // e.g. "tap,swipe,scroll"
+  // e.g. "first,second,third"
   localStorage.setItem('sequence', checked.value);
 
   // Carry the session param forward if it's in the URL
