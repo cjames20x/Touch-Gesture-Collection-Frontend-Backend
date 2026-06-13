@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Tuple
 
 from sklearn.model_selection import KFold
 
-
+# For numerical stability and handling long sequences safetly
 def _logsumexp(values: np.ndarray, axis: Optional[int] = None) -> np.ndarray:
     values = np.asarray(values, dtype=float)
     if axis is None:
@@ -24,14 +24,17 @@ def _logsumexp(values: np.ndarray, axis: Optional[int] = None) -> np.ndarray:
     result = max_value + np.log(np.maximum(summed, 1e-300))
     return np.squeeze(result, axis=axis)
 
-
+# How likely is observation x in state with mean and var (diagonal covariance)?
 def _log_gaussian_diag(x: np.ndarray, mean: np.ndarray, var: np.ndarray) -> float:
     var = np.maximum(var, 1e-6)
     diff = x - mean
     return float(-0.5 * (np.sum(np.log(2.0 * np.pi * var)) + np.sum((diff * diff) / var)))
 
-
 class LeftRightHMM:
+    # n_states: number of hidden states (e.g. 3)
+    # n_iter: max EM iterations
+    # tol: EM convergence threshold
+    # min_covar: minimum covariance to avoid numerical instability
     def __init__(
         self,
         n_states: int = 3,
@@ -49,12 +52,14 @@ class LeftRightHMM:
         self._covars: Optional[np.ndarray] = None
         self.is_fitted = False
 
+    # Start probabilities: always start in state 0
     @staticmethod
     def _make_startprob(n: int) -> np.ndarray:
         p = np.zeros(n)
         p[0] = 1.0
         return p
 
+    # Gradual transitions: state i can stay in i or move to i+1, except last state which is absorbing
     @staticmethod
     def _make_transmat(n: int) -> np.ndarray:
         transition = np.zeros((n, n))
@@ -64,6 +69,7 @@ class LeftRightHMM:
         transition[n - 1, n - 1] = 1.0
         return transition
 
+    # Initialise emissions (means and covariances) from the data by splitting into n_states chunks
     def _initialise_emissions(self, X: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         n_features = X.shape[1]
         global_mean = np.mean(X, axis=0)
@@ -85,6 +91,7 @@ class LeftRightHMM:
 
         return means, covars
 
+    # Compute the log-likelihood of each observation in the sequence for each state
     def _log_emission_matrix(self, X: np.ndarray) -> np.ndarray:
         log_b = np.empty((len(X), self.n_states), dtype=float)
         for t, obs in enumerate(X):
@@ -92,6 +99,7 @@ class LeftRightHMM:
                 log_b[t, state] = _log_gaussian_diag(obs, self._means[state], self._covars[state])
         return log_b
 
+    # Gets probability of each state at each time step
     def _forward(self, log_b: np.ndarray) -> Tuple[np.ndarray, float]:
         log_start = np.log(np.maximum(self._startprob, 1e-300))
         log_trans = np.full_like(self._transmat, -np.inf, dtype=float)
@@ -108,6 +116,7 @@ class LeftRightHMM:
         log_likelihood = float(_logsumexp(log_alpha[-1]))
         return log_alpha, log_likelihood
 
+    # Gets probability of each state at each time step backwards
     def _backward(self, log_b: np.ndarray) -> np.ndarray:
         log_trans = np.full_like(self._transmat, -np.inf, dtype=float)
         positive = self._transmat > 0
@@ -121,6 +130,7 @@ class LeftRightHMM:
                 log_beta[t, state] = _logsumexp(outgoing)
         return log_beta
 
+    # Runs Baum-Welch EM algorithm to fit the HMM parameters to the data
     def fit(self, X: np.ndarray, lengths: List[int]) -> "LeftRightHMM":
         if X.ndim != 2:
             raise ValueError("X must be a 2D array of observations.")
@@ -181,6 +191,7 @@ class LeftRightHMM:
         self.is_fitted = True
         return self
 
+    # Gets the log-likelihood of the given sequence under the model
     def log_likelihood(self, X: np.ndarray) -> float:
         if not self.is_fitted:
             raise RuntimeError("Call fit() before log_likelihood().")
@@ -193,6 +204,7 @@ class LeftRightHMM:
         except Exception:
             return -1e6
 
+    # Returns log-likelihood scores for each sequence in X given their lengths
     def score_sequences(self, X: np.ndarray, lengths: List[int]) -> np.ndarray:
         scores = []
         start = 0
@@ -202,7 +214,7 @@ class LeftRightHMM:
             start += length
         return np.array(scores)
 
-
+# HMM wrapper for a single user, with threshold-based authentication
 class UserHMM:
     def __init__(self, participant_id: str, n_states: int = 3):
         self.participant_id = participant_id
@@ -225,7 +237,7 @@ class UserHMM:
         ll = self.score(X_seq)
         return (ll >= self.threshold), ll
 
-
+# Select the best number of states for a given dataset
 def select_n_states_cv(
     X: np.ndarray,
     lengths: List[int],
@@ -275,7 +287,7 @@ def select_n_states_cv(
     best_n = max(mean_scores, key=lambda key: mean_scores[key])
     return best_n, mean_scores
 
-
+# Compute the EER threshold for a given dataset
 def compute_eer_threshold(
     genuine_scores: np.ndarray,
     impostor_scores: np.ndarray,
@@ -296,7 +308,7 @@ def compute_eer_threshold(
 
     return theta_eer, eer, far_curve, frr_curve
 
-
+# Train a user model for a given dataset
 def train_user_model(
     participant_id: str,
     train_sequences: list,
