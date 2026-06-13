@@ -161,8 +161,8 @@ function promptGesture(gestureType: GestureType): void {
   }
   capturing     = true;
   currentEvents = [];
-  statusEl.textContent = `Rep ${currentRep + 1} / ${TOTAL_REPS}  ·  Step ${currentGestureIdx + 1} / ${sequenceTypes.length}`;
-  instrEl.textContent  = `${getStepLabel(currentGestureIdx)} (${currentRep + 1}/${TOTAL_REPS})`;
+  statusEl.textContent = `Rep ${currentRep + 1} / ${TOTAL_REPS}`;
+  instrEl.textContent  = `Step ${currentGestureIdx + 1} / ${sequenceTypes.length} · ${getStepLabel(currentGestureIdx)}`;
   resetSurface();
   attachListeners(gestureType);
 }
@@ -199,8 +199,8 @@ function finaliseRep(): void {
   currentRep++;
 
   if (currentRep < TOTAL_REPS && running) {
-    statusEl.textContent = `Rep ${currentRep} complete ✓  —  Get ready…`;
-    instrEl.textContent  = 'Prepare for next rep…';
+    statusEl.textContent = `Rep ${currentRep} / ${TOTAL_REPS}`;
+    instrEl.textContent  = 'Prepare next rep';
     resetSurface();
     setTimeout(() => {
       if (running) promptGesture(sequenceTypes[0] as GestureType);
@@ -218,7 +218,7 @@ async function sendToBackend(): Promise<void> {
   startBtn.style.display = 'none';
   stopBtn.style.display  = 'none';
   statusEl.textContent   = '⏳ Sending data to backend…';
-  instrEl.textContent    = 'Please wait…';
+  instrEl.textContent    = 'Please wait';
   resetSurface();
 
   try {
