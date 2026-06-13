@@ -54,7 +54,6 @@ let statusEl    : HTMLDivElement;
 let instrEl     : HTMLDivElement;
 let startBtn    : HTMLButtonElement;
 let stopBtn     : HTMLButtonElement;
-let outputEl    : HTMLDivElement;
 let continueBtn : HTMLAnchorElement;
 let userInfoEl  : HTMLDivElement;
 let backBtn     : HTMLButtonElement;
@@ -64,11 +63,7 @@ function getStepLabel(index: number): string {
 }
 
 function log(msg: string): void {
-  outputEl.style.display = 'block';
-  const line = document.createElement('div');
-  line.textContent = msg;
-  outputEl.appendChild(line);
-  outputEl.scrollTop = outputEl.scrollHeight;
+  console.debug(`[training] ${msg}`);
 }
 
 function setSurface(text: string, borderColor = '', bg = ''): void {
@@ -270,8 +265,6 @@ function initButtons(): void {
     startBtn.style.display    = 'none';
     stopBtn.style.display     = 'inline-flex';
     continueBtn.style.display = 'none';
-    outputEl.innerHTML        = '';
-    outputEl.style.display    = 'block';
     instrEl.style.color       = '';
 
     log(`▶ Session ${getSessionId()} · Sequence: ${sequenceTypes.join(' → ')} · ${TOTAL_REPS} reps`);
@@ -306,7 +299,6 @@ document.addEventListener('DOMContentLoaded', () => {
   instrEl     = document.getElementById('current-instruction') as HTMLDivElement;
   startBtn    = document.getElementById('start-training')      as HTMLButtonElement;
   stopBtn     = document.getElementById('stop-training')       as HTMLButtonElement;
-  outputEl    = document.getElementById('output')              as HTMLDivElement;
   continueBtn = document.getElementById('continue-btn')        as HTMLAnchorElement;
   userInfoEl  = document.getElementById('user-info')           as HTMLDivElement;
   backBtn     = document.getElementById('back-button')         as HTMLButtonElement;
@@ -317,7 +309,6 @@ document.addEventListener('DOMContentLoaded', () => {
     ['current-instruction',  instrEl],
     ['start-training',       startBtn],
     ['stop-training',        stopBtn],
-    ['output',               outputEl],
     ['continue-btn',         continueBtn],
     ['user-info',            userInfoEl],
     ['back-button',          backBtn],
