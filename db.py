@@ -17,7 +17,17 @@ from supabase import create_client, Client
 # Load env
 load_dotenv()
 
-SUPABASE_URL = os.getenv("SUPABASE_URL") or ("https://" + os.getenv("SUPABASE_HOST", ""))
+
+def _normalize_supabase_url() -> str:
+    raw_url = os.getenv("SUPABASE_URL") or os.getenv("SUPABASE_HOST", "")
+    if not raw_url:
+        return ""
+    if raw_url.startswith("http://") or raw_url.startswith("https://"):
+        return raw_url
+    return f"https://{raw_url}"
+
+
+SUPABASE_URL = _normalize_supabase_url()
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
 
 
@@ -37,10 +47,13 @@ class SupabaseDB:
             "mode": mode,
             "sequence_json": sequence_json,
         }
-        res = self.client.table("gesture_sequences").insert(payload).select("seq_id").execute()
-        if res.error:
-            raise Exception(f"Failed to save sequence: {res.error.message}")
-        return str(res.data[0]["seq_id"]) if res.data else ""
+        try:
+            res = self.client.table("gesture_sequences").insert(payload).select("seq_id").execute()
+            if not res.data:
+                raise Exception("Insert succeeded but returned no seq_id")
+            return str(res.data[0]["seq_id"])
+        except Exception as exc:
+            raise Exception(f"Failed to save sequence: {exc}") from exc
 
     def get_sequences(self, participant_id: str, session_id: Optional[int] = None, mode: Optional[str] = None) -> List[Dict[str, Any]]:
         q = self.client.table("gesture_sequences").select("seq_id, session_id, mode, sequence_json").eq("participant_id", participant_id)
@@ -49,10 +62,11 @@ class SupabaseDB:
         if mode is not None:
             q = q.eq("mode", mode)
         q = q.order("created_at", {"ascending": True})
-        res = q.execute()
-        if res.error:
-            raise Exception(f"Failed to load sequences: {res.error.message}")
-        return res.data or []
+        try:
+            res = q.execute()
+            return res.data or []
+        except Exception as exc:
+            raise Exception(f"Failed to load sequences: {exc}") from exc
 
     def get_impostor_sequences(self, exclude_participant_id: str, limit: int = 20) -> List[Dict[str, Any]]:
         res = (
@@ -65,8 +79,6 @@ class SupabaseDB:
             .limit(limit)
             .execute()
         )
-        if res.error:
-            raise Exception(f"Failed to load impostor sequences: {res.error.message}")
         return res.data or []
 
     # ========== MODELS ==========
@@ -84,9 +96,10 @@ class SupabaseDB:
             "is_fitted": True,
         }
         # Use upsert to replace existing model for participant
-        res = self.client.table("models").upsert(payload, on_conflict="participant_id").execute()
-        if res.error:
-            raise Exception(f"Failed to save model: {res.error.message}")
+        try:
+            self.client.table("models").upsert(payload, on_conflict="participant_id").execute()
+        except Exception as exc:
+            raise Exception(f"Failed to save model: {exc}") from exc
 
     def load_model(self, participant_id: str) -> Optional[Dict[str, Any]]:
         res = (
@@ -97,8 +110,6 @@ class SupabaseDB:
             .limit(1)
             .execute()
         )
-        if res.error:
-            raise Exception(f"Failed to load model: {res.error.message}")
         if not res.data:
             return None
         row = res.data[0]
@@ -113,8 +124,6 @@ class SupabaseDB:
 
     def model_exists(self, participant_id: str) -> bool:
         res = self.client.table("models").select("participant_id").eq("participant_id", participant_id).eq("is_fitted", True).limit(1).execute()
-        if res.error:
-            raise Exception(f"Failed to check model existence: {res.error.message}")
         return bool(res.data)
 
     # ========== AUTHENTICATIONS ==========
@@ -128,17 +137,19 @@ class SupabaseDB:
             "threshold": threshold,
             "accepted": accepted,
         }
-        res = self.client.table("authentications").insert(payload).select("auth_id").execute()
-        if res.error:
-            raise Exception(f"Failed to log authentication: {res.error.message}")
-        return str(res.data[0]["auth_id"]) if res.data else ""
+        try:
+            res = self.client.table("authentications").insert(payload).select("auth_id").execute()
+            return str(res.data[0]["auth_id"]) if res.data else ""
+        except Exception as exc:
+            raise Exception(f"Failed to log authentication: {exc}") from exc
 
     def get_auth_stats(self, participant_id: str) -> Dict[str, Any]:
         # Fetch counts and compute stats client-side
-        res = self.client.table("authentications").select("accepted").eq("participant_id", participant_id).execute()
-        if res.error:
-            raise Exception(f"Failed to get auth stats: {res.error.message}")
-        rows = res.data or []
+        try:
+            res = self.client.table("authentications").select("accepted").eq("participant_id", participant_id).execute()
+            rows = res.data or []
+        except Exception as exc:
+            raise Exception(f"Failed to get auth stats: {exc}") from exc
         total = len(rows)
         accepted = sum(1 for r in rows if r.get("accepted"))
         rejected = total - accepted
@@ -148,10 +159,17 @@ class SupabaseDB:
 
     def create_participant(self, participant_id: str, name: str = "", email: str = "") -> None:
         payload = {"participant_id": participant_id, "name": name, "email": email}
-        res = self.client.table("participants").insert(payload).execute()
-        # ignore unique constraint errors
-        if res.error and "duplicate key" not in str(res.error.message).lower():
-            raise Exception(f"Failed to create participant: {res.error.message}")
+        try:
+            self.client.table("participants").upsert(payload, on_conflict="participant_id").execute()
+        except Exception as exc:
+            raise Exception(f"Failed to create participant: {exc}") from exc
+
+    def list_trained_participants(self) -> List[str]:
+        try:
+            res = self.client.table("models").select("participant_id").eq("is_fitted", True).execute()
+            return sorted({row["participant_id"] for row in (res.data or [])})
+        except Exception as exc:
+            raise Exception(f"Failed to list trained participants: {exc}") from exc
 
 
 # Helper functions to serialize/deserialize bytea-like content for Postgres via Supabase

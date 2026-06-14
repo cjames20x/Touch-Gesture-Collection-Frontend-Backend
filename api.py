@@ -138,11 +138,7 @@ def list_users():
     """List all participants with trained models."""
     database = get_db()
     try:
-        conn = database.get_connection()
-        with conn.cursor() as cur:
-            cur.execute("SELECT participant_id FROM models WHERE is_fitted = TRUE;")
-            users = [row[0] for row in cur.fetchall()]
-        database.return_connection(conn)
+        users = database.list_trained_participants()
         return jsonify({"users": sorted(users)})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -177,6 +173,7 @@ def submit_gestures():
             seq_dict = _gesture_sequence_to_dict(seq)
             database.save_sequence(pid, session_id, mode, seq_dict)
         except Exception as e:
+            print(f"Error saving sequence for participant={pid} session={session_id}: {e}")
             return jsonify({"status": "error", "message": str(e)}), 400
 
     if mode != "train":
