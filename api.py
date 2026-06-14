@@ -152,11 +152,20 @@ def submit_gestures():
       mode = "eval"   →  store only
     """
     database = get_db()
-    data          = request.json
-    pid           = data.get("participant_id", "unknown")
-    session_id    = int(data.get("session_id", 1))
-    mode          = data.get("mode", "train")
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"status": "error", "message": "Invalid JSON body."}), 400
+
+    pid = str(data.get("participant_id", "unknown")).strip() or "unknown"
+    try:
+        session_id = int(data.get("session_id", 1))
+    except (TypeError, ValueError):
+        return jsonify({"status": "error", "message": "session_id must be an integer."}), 400
+
+    mode = str(data.get("mode", "train"))
     raw_sequences = data.get("sequences", [])
+    if not isinstance(raw_sequences, list):
+        return jsonify({"status": "error", "message": "sequences must be a list."}), 400
 
     # Create participant record if needed
     try:
@@ -164,16 +173,31 @@ def submit_gestures():
     except Exception as e:
         print(f"Warning: Failed to create participant: {e}")
 
-    # Parse and save sequences to database
-    parsed = []
-    for raw in raw_sequences:
+    # Parse first so malformed input never partially writes to the database.
+    parsed: List[GestureSequence] = []
+    serialized_sequences: List[dict] = []
+    for index, raw in enumerate(raw_sequences):
         try:
             seq = _parse_sequence(raw, pid, session_id)
             parsed.append(seq)
-            seq_dict = _gesture_sequence_to_dict(seq)
+        except Exception as e:
+            print(
+                f"Malformed sequence submission for participant={pid} session={session_id} "
+                f"at index={index}: {e}\nPayload: {json.dumps(data, ensure_ascii=False)[:2000]}"
+            )
+            return jsonify({"status": "error", "message": f"Malformed sequence at index {index}: {e}"}), 400
+
+        serialized_sequences.append(_gesture_sequence_to_dict(seq))
+
+    # Save only after everything has been validated.
+    for seq_dict in serialized_sequences:
+        try:
             database.save_sequence(pid, session_id, mode, seq_dict)
         except Exception as e:
-            print(f"Error saving sequence for participant={pid} session={session_id}: {e}")
+            print(
+                f"Error saving sequence for participant={pid} session={session_id}: {e}\n"
+                f"Payload: {json.dumps(data, ensure_ascii=False)[:2000]}"
+            )
             return jsonify({"status": "error", "message": str(e)}), 400
 
     if mode != "train":
