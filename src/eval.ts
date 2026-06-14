@@ -69,7 +69,7 @@ let accepted          = 0;
 let rejected          = 0;
 let cleanupListeners  : (() => void) | null = null;
 
-const API_BASE = 'https://touchauth.onrender.com:10000';
+const API_BASE = 'https://touchauth.onrender.com';
 let apiConnected = false;
 
 function setPopup(message: string, state: 'checking' | 'connected' | 'offline'): void {

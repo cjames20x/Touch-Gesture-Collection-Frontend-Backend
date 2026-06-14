@@ -4,7 +4,7 @@
  *   import { submitGestures, authenticate } from './api.js';
  */
 
-const API_BASE = 'https://touchauth.onrender.com:10000';
+const API_BASE = 'https://touchauth.onrender.com';
 
 export interface TouchEventPayload {
   timestamp : number;
