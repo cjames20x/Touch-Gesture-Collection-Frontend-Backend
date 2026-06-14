@@ -1,8 +1,7 @@
-def get_db() -> SupabaseDB:
 """
 Supabase client wrapper for TouchAuth.
 
-This file uses the Supabase Python client (`supabase`) to perform CRUD
+This file uses the Supabase Python client (`supabase`) tO perform CRUD
 operations against the tables defined in `schema.sql`. It replaces the
 previous psycopg2-based implementation.
 """
