@@ -67,6 +67,11 @@
   padding: 0; 
 }
 
+
+#stop-training {
+  justify-content: center;
+  align-items: center;
+}
 html, body {
   height: 100%;
   font-family: var(--font-family);
@@ -843,6 +848,21 @@ a.link:hover {
   min-height: 0;
 }
 
+.training-page .training-status-top {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 20px;
+}
+
+.training-page .training-status-top #training-status {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  font-weight: 700;
+  text-align: center;
+}
+
 .training-page .training-panel #surface {
   width: 100%;
   flex: 1;
@@ -895,11 +915,13 @@ a.link:hover {
 .training-page .training-controls {
   display: flex;
   justify-content: center;
+  align-items: center;
 }
 
 .training-page .training-controls button {
   width: 100%;
   max-width: 220px;
+  margin-inline: auto;
 }
 
 .training-page .training-controls button:only-child {

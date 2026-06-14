@@ -72,7 +72,7 @@ function setSurface(text: string, borderColor = '', bg = ''): void {
   surface.style.background  = bg;
 }
 
-function resetSurface(): void { setSurface('👆 Gesture Area'); }
+function resetSurface(): void { setSurface(''); }
 
 function attachListeners(gestureType: GestureType): void {
   if (cleanupListeners) cleanupListeners();
@@ -82,7 +82,7 @@ function attachListeners(gestureType: GestureType): void {
     e.preventDefault();
     if (!capturing || !running) return;
     captureTouches(e.changedTouches, e.timeStamp, multi);
-    setSurface('🔴 Recording…', 'var(--accent)', 'var(--accent-light)');
+    setSurface('', 'var(--accent)', 'var(--accent-light)');
   }
   function onTouchMove(e: TouchEvent): void {
     e.preventDefault();
@@ -100,7 +100,7 @@ function attachListeners(gestureType: GestureType): void {
   function onMouseDown(e: MouseEvent): void {
     if (!capturing || !running) return;
     currentEvents.push(mouseToPayload(e));
-    setSurface('🔴 Recording…', 'var(--accent)', 'var(--accent-light)');
+    setSurface('', 'var(--accent)', 'var(--accent-light)');
   }
   function onMouseMove(e: MouseEvent): void {
     if (!capturing || !running || currentEvents.length === 0 || e.buttons === 0) return;
@@ -151,7 +151,7 @@ function mouseToPayload(e: MouseEvent): TouchEventPayload {
 
 function promptGesture(gestureType: GestureType): void {
   if (!gestureType) {
-    console.error('[training] promptGesture called with undefined — check sequence config');
+    console.error('[training] promptGesture called with undefined. Check sequence config.');
     return;
   }
   capturing     = true;
@@ -167,15 +167,15 @@ function finaliseGesture(gestureType: GestureType): void {
   currentEvents = [];
 
   if (events.length < 1) {
-    log(`⚠️ Rep ${currentRep + 1}: gesture too short — please try again.`);
-    setSurface('⚠️ Too short — try again');
+    log(`Warning: rep ${currentRep + 1} gesture was too short. Please try again.`);
+    setSurface('');
     setTimeout(() => { if (running) promptGesture(gestureType); }, 800);
     return;
   }
 
   currentGestures.push({ gesture_type: gestureType, orientation: gestureOrientation(gestureType), events });
-  log(`✓ Rep ${currentRep + 1}: ${gestureType} — ${events.length} events`);
-  setSurface('✅ Got it!', 'var(--success)', '#f0fdf4');
+  log(`Rep ${currentRep + 1}: ${gestureType} captured with ${events.length} events`);
+  setSurface('', 'var(--success)', '#f0fdf4');
 
   setTimeout(() => {
     currentGestureIdx++;
@@ -212,7 +212,7 @@ async function sendToBackend(): Promise<void> {
 
   startBtn.style.display = 'none';
   stopBtn.style.display  = 'none';
-  statusEl.textContent   = '⏳ Sending data to backend…';
+  statusEl.textContent   = 'Sending data to backend...';
   instrEl.textContent    = 'Please wait';
   resetSurface();
 
@@ -230,17 +230,17 @@ async function sendToBackend(): Promise<void> {
     const result = await submitGestures({ participantId: pid, sessionId, sequences: completedSequences, mode: 'train' });
     const status = result['status'] as string;
     statusEl.textContent =
-      status === 'trained' ? `✅ Model trained!  Threshold: ${result['threshold']}` :
-      status === 'pending' ? `📦 ${result['message']}` :
-      `ℹ️ ${result['message']}`;
+      status === 'trained' ? `Model trained. Threshold: ${result['threshold']}` :
+      status === 'pending' ? `${result['message']}` :
+      `${result['message']}`;
     instrEl.textContent = 'Training complete!';
-    log(`\n📤 Sent ${completedSequences.length} sequences — status: ${status}`);
+    log(`Sent ${completedSequences.length} sequences. Status: ${status}`);
     if (status === 'trained') {
       localStorage.setItem('model_id', String(result['model_id'] ?? pid));
     }
   } catch (err) {
-    statusEl.textContent = `❌ Backend error: ${(err as Error).message}`;
-    log(`❌ ${(err as Error).message}`);
+    statusEl.textContent = `Backend error: ${(err as Error).message}`;
+    log(`Backend error: ${(err as Error).message}`);
   }
 
   continueBtn.style.display = 'flex';
@@ -267,7 +267,7 @@ function initButtons(): void {
     continueBtn.style.display = 'none';
     instrEl.style.color       = '';
 
-    log(`▶ Session ${getSessionId()} · Sequence: ${sequenceTypes.join(' → ')} · ${TOTAL_REPS} reps`);
+    log(`Session ${getSessionId()} · Sequence: ${sequenceTypes.join(' -> ')} · ${TOTAL_REPS} reps`);
     promptGesture(sequenceTypes[0] as GestureType);
   });
 
@@ -278,7 +278,7 @@ function initButtons(): void {
 
     startBtn.style.display = 'inline-flex';
     stopBtn.style.display  = 'none';
-    statusEl.textContent   = 'Stopped — press Start to retry.';
+    statusEl.textContent   = 'Stopped. Press Start to retry.';
     instrEl.textContent    = 'Ready';
     instrEl.style.color    = '';
     resetSurface();

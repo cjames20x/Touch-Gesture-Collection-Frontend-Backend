@@ -87,20 +87,20 @@ function setPopup(message: string, state: 'checking' | 'connected' | 'offline'):
 }
 
 async function checkAPIHealth(): Promise<void> {
-  setPopup('⏳ Checking API connection...', 'checking');
+  setPopup('Checking API connection...', 'checking');
   try {
     const res  = await fetch(`${API_BASE}/ping`, { signal: AbortSignal.timeout(3000) });
     console.log(res);
     const data = await res.json();
     apiConnected = res.ok && data.status === 'ok';
     if (apiConnected) {
-      setPopup('🟢 API connected', 'connected');
+      setPopup('API connected', 'connected');
     } else {
-      setPopup('🔴 API responded but returned unexpected status', 'offline');
+      setPopup('API responded but returned an unexpected status', 'offline');
     }
   } catch {
     apiConnected = false;
-    setPopup('🔴 API offline — scores will save locally only', 'offline');
+    setPopup('API offline. Scores will save locally only.', 'offline');
   }
 }
 
@@ -119,7 +119,7 @@ function setSurface(text: string, borderColor = '', bg = ''): void {
   surface.style.background  = bg;
 }
 
-function resetSurface(): void { setSurface('👆 Gesture Area'); }
+function resetSurface(): void { setSurface(''); }
 
 function attachListeners(gestureType: GestureType): void {
   if (cleanupListeners) cleanupListeners();
@@ -129,7 +129,7 @@ function attachListeners(gestureType: GestureType): void {
     e.preventDefault();
     if (!capturing || !running) return;
     captureTouches(e.changedTouches, e.timeStamp, multi);
-    setSurface('🔴 Recording…', 'var(--accent)', 'var(--accent-light)');
+    setSurface('', 'var(--accent)', 'var(--accent-light)');
   }
   function onTouchMove(e: TouchEvent): void {
     e.preventDefault();
@@ -147,7 +147,7 @@ function attachListeners(gestureType: GestureType): void {
   function onMouseDown(e: MouseEvent): void {
     if (!capturing || !running) return;
     currentEvents.push(mouseToPayload(e));
-    setSurface('🔴 Recording…', 'var(--accent)', 'var(--accent-light)');
+    setSurface('', 'var(--accent)', 'var(--accent-light)');
   }
   function onMouseMove(e: MouseEvent): void {
     if (!capturing || !running || currentEvents.length === 0 || e.buttons === 0) return;
@@ -198,7 +198,7 @@ function mouseToPayload(e: MouseEvent): TouchEventPayload {
 
 function promptGesture(gestureType: GestureType): void {
   if (!gestureType) {
-    log('⚠️ No gesture type to prompt — check your sequence configuration.', 'var(--danger)');
+    log('No gesture type to prompt. Check your sequence configuration.', 'var(--danger)');
     finishEval();
     return;
   }
@@ -215,8 +215,8 @@ function finaliseGesture(gestureType: GestureType): void {
   currentEvents = [];
 
   if (events.length < 1) {
-    log(`⚠️ Eval ${currentRep + 1}: step too short — please try again.`);
-    setSurface('⚠️ Too short — try again');
+    log(`Warning: eval ${currentRep + 1} step was too short. Please try again.`);
+    setSurface('');
     setTimeout(() => { if (running) promptGesture(gestureType); }, 800);
     return;
   }
@@ -227,7 +227,7 @@ function finaliseGesture(gestureType: GestureType): void {
     events,
   });
 
-  setSurface('✅ Got it!', 'var(--success)', '#f0fdf4');
+  setSurface('', 'var(--success)', '#f0fdf4');
   setTimeout(() => {
     currentGestureIdx++;
     if (currentGestureIdx < sequenceTypes.length) {
@@ -246,8 +246,8 @@ async function finaliseEvalRep(): Promise<void> {
   const pid       = user.participantId;
   const sessionId = getSessionId();
 
-  statusEl.textContent = `⏳ Authenticating rep ${currentRep + 1}…`;
-  instrEl.textContent  = 'Checking…';
+  statusEl.textContent = `Authenticating rep ${currentRep + 1}...`;
+  instrEl.textContent  = 'Checking...';
   resetSurface();
 
   try {
@@ -257,7 +257,7 @@ async function finaliseEvalRep(): Promise<void> {
   } catch { /* ignore */ }
 
   if (!apiConnected) {
-    log(`⚠️ Rep ${currentRep + 1}: API offline — saved locally only`, '#f59e0b');
+    log(`Warning: rep ${currentRep + 1}. API offline. Saved locally only.`, '#f59e0b');
     currentRep++;
     advanceOrFinish();
     return;
@@ -265,7 +265,7 @@ async function finaliseEvalRep(): Promise<void> {
 
   const modelId = localStorage.getItem('model_id');
   if (!modelId) {
-    log(`⚠️ Rep ${currentRep + 1}: No trained model found — saved locally only`, '#f59e0b');
+    log(`Warning: rep ${currentRep + 1}. No trained model found. Saved locally only.`, '#f59e0b');
     currentRep++;
     advanceOrFinish();
     return;
@@ -275,13 +275,13 @@ async function finaliseEvalRep(): Promise<void> {
     const result = await authenticate({ participantId: pid, sessionId, sequence });
     if (result.accepted) {
       accepted++;
-      log(`✅ Rep ${currentRep + 1}: ACCEPTED  (LL: ${result.log_likelihood}  θ: ${result.threshold})`, 'var(--success)');
+      log(`Rep ${currentRep + 1}: accepted. LL: ${result.log_likelihood}  Threshold: ${result.threshold}`, 'var(--success)');
     } else {
       rejected++;
-      log(`❌ Rep ${currentRep + 1}: REJECTED  (LL: ${result.log_likelihood}  θ: ${result.threshold})`, 'var(--danger)');
+      log(`Rep ${currentRep + 1}: rejected. LL: ${result.log_likelihood}  Threshold: ${result.threshold}`, 'var(--danger)');
     }
   } catch (err) {
-    log(`⚠️ Rep ${currentRep + 1}: Error — ${(err as Error).message}`, '#f59e0b');
+    log(`Warning: rep ${currentRep + 1}. Error: ${(err as Error).message}`, '#f59e0b');
   }
 
   currentRep++;
@@ -290,8 +290,8 @@ async function finaliseEvalRep(): Promise<void> {
 
 function advanceOrFinish(): void {
   if (currentRep < TOTAL_EVAL_REPS && running) {
-    statusEl.textContent = `Rep ${currentRep} done · Get ready…`;
-    instrEl.textContent  = 'Prepare for next rep…';
+    statusEl.textContent = `Rep ${currentRep} done. Get ready...`;
+    instrEl.textContent  = 'Prepare for next rep...';
     setTimeout(() => {
       if (running) promptGesture(sequenceTypes[0] as GestureType);
     }, 1200);
@@ -313,17 +313,17 @@ function finishEval(): void {
   const allOk = rejected === 0 && total > 0;
 
   statusEl.textContent = total > 0
-    ? `Done — ${accepted}/${total} accepted (${pct}%)`
-    : 'Done — saved locally (no model trained yet)';
+    ? `Done. ${accepted}/${total} accepted (${pct}%)`
+    : 'Done. Saved locally. No model trained yet.';
 
   instrEl.textContent = allOk
-    ? '✅ All attempts accepted!'
+    ? 'All attempts accepted.'
     : total > 0
-    ? `⚠️ ${rejected} attempt(s) rejected`
-    : 'ℹ️ Gestures recorded locally';
+    ? `${rejected} attempt(s) rejected`
+    : 'Gestures recorded locally.';
   instrEl.style.color = allOk ? 'var(--success)' : total > 0 ? 'var(--danger)' : '#f59e0b';
 
-  log(`\n📊 Summary: ${accepted} accepted, ${rejected} rejected out of ${total} attempts.`);
+  log(`Summary: ${accepted} accepted, ${rejected} rejected out of ${total} attempts.`);
   doneBtn.style.display = 'flex';
 }
 
@@ -351,7 +351,7 @@ function initStartButton(): void {
     doneBtn.style.display  = 'none';
     instrEl.style.color    = '';
 
-    log(`▶ Evaluation · Session ${getSessionId()} · Sequence: ${sequenceTypes.map((_, index) => getStepLabel(index)).join(' → ')} · ${TOTAL_EVAL_REPS} reps`);
+    log(`Evaluation · Session ${getSessionId()} · Sequence: ${sequenceTypes.map((_, index) => getStepLabel(index)).join(' -> ')} · ${TOTAL_EVAL_REPS} reps`);
     promptGesture(sequenceTypes[0] as GestureType);
   });
 }
@@ -363,7 +363,7 @@ function initStopButton(): void {
     if (cleanupListeners) cleanupListeners();
     startBtn.style.display = 'inline-flex';
     stopBtn.style.display  = 'none';
-    statusEl.textContent   = 'Stopped — press Start to retry.';
+    statusEl.textContent   = 'Stopped. Press Start to retry.';
     instrEl.textContent    = 'Ready';
     instrEl.style.color    = '';
     resetSurface();
