@@ -69,7 +69,7 @@ let accepted          = 0;
 let rejected          = 0;
 let cleanupListeners  : (() => void) | null = null;
 
-const API_BASE = 'http://localhost:5000';
+const API_BASE = 'http://0.0.0.0:10000';
 let apiConnected = false;
 
 function setPopup(message: string, state: 'checking' | 'connected' | 'offline'): void {

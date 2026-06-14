@@ -4,7 +4,7 @@
  *   import { submitGestures, authenticate } from './api.js';
  */
 
-const API_BASE = 'http://localhost:10000';
+const API_BASE = 'http://0.0.0.0:10000';
 
 export interface TouchEventPayload {
   timestamp : number;

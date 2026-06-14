@@ -4,7 +4,7 @@
  * Add <script src="api-client.js"></script> to any page that needs the backend.
  */
 
-const API_BASE = 'http://localhost:5000';
+const API_BASE = 'http://0.0.0.0:10000';
 
 /** POST raw gesture sequences to /submit_gestures (training or eval) */
 export async function submitGestures({ participantId, sessionId, sequences, mode = 'train' }) {
