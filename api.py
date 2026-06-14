@@ -207,4 +207,4 @@ if __name__ == "__main__":
     print("  Flask backend running")
     print("  Open:  http://localhost:10000")
     print("=" * 50 + "\n")
-    app.run(host="0.0.0.0", debug=True, port=10000)
+    app.run(debug=True, port=10000)
